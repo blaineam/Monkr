@@ -1,0 +1,94 @@
+@import 'tailwindcss';
+
+:root {
+	--color-bg-primary: #09090b;
+	--color-bg-secondary: #18181b;
+	--color-bg-card: #27272a;
+	--color-bg-hover: #3f3f46;
+	--color-accent: #ec4899;
+	--color-accent-hover: #f43f5e;
+	--color-text-primary: #ffffff;
+	--color-text-secondary: #d4d4d8;
+	--color-text-muted: #a1a1aa;
+	--color-border: #3f3f46;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+	height: 100%;
+	overflow: hidden;
+	background-color: var(--color-bg-primary);
+	color: var(--color-text-primary);
+	font-family:
+		'Inter',
+		ui-sans-serif,
+		system-ui,
+		-apple-system,
+		sans-serif;
+}
+
+* {
+	scrollbar-width: thin;
+	scrollbar-color: #3f3f46 transparent;
+}
+
+*::-webkit-scrollbar {
+	width: 6px;
+}
+
+*::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+	background-color: #3f3f46;
+	border-radius: 3px;
+}
+
+input[type='range'] {
+	-webkit-appearance: none;
+	appearance: none;
+	height: 6px;
+	background: #3f3f46;
+	border-radius: 3px;
+	outline: none;
+}
+
+input[type='range']::-webkit-slider-thumb {
+	-webkit-appearance: none;
+	appearance: none;
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	background: #ec4899;
+	cursor: pointer;
+	border: 2px solid #18181b;
+}
+
+input[type='range']::-moz-range-thumb {
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	background: #ec4899;
+	cursor: pointer;
+	border: 2px solid #18181b;
+}
+
+input[type='color'] {
+	-webkit-appearance: none;
+	appearance: none;
+	border: none;
+	padding: 0;
+	cursor: pointer;
+}
+
+input[type='color']::-webkit-color-swatch-wrapper {
+	padding: 0;
+}
+
+input[type='color']::-webkit-color-swatch {
+	border: none;
+	border-radius: 6px;
+}
