@@ -213,15 +213,7 @@ const RESOLUTION_CAPS: Record<AnimResolution, { w: number; h: number }> = {
 };
 
 /**
- * Compute pixelRatio for html-to-image capture.
- *
- * The canvas element is displayed at a small size on screen (scaled by
- * viewScale to fit the viewport), but we need to capture at the full
- * logical resolution or the target resolution cap, whichever is smaller.
- *
- * Example: a 1920×1080 logical canvas displayed at 400×300 on screen
- * needs pixelRatio = min(1920/400, 1080/300) = 3.6 to produce a
- * 1440×1080 output image (aspect-fit to 1080p).
+ * Compute pixelRatio for html-to-image capture, capped to the target resolution.
  */
 function computeExportPixelRatio(element: HTMLElement, resolution: AnimResolution = '1080p'): number {
 	const w = element.offsetWidth;
@@ -230,9 +222,24 @@ function computeExportPixelRatio(element: HTMLElement, resolution: AnimResolutio
 	const cap = RESOLUTION_CAPS[resolution];
 	const scaleW = cap.w / w;
 	const scaleH = cap.h / h;
-	// Scale UP to fill the target resolution (no cap at 1 — the element
-	// is displayed smaller than its logical size due to viewScale)
-	return Math.min(scaleW, scaleH);
+	return Math.min(1, scaleW, scaleH);
+}
+
+/**
+ * Temporarily remove CSS transform from the canvas element before capture.
+ * The canvas uses `transform: scale(viewScale)` to fit the viewport, but
+ * html-to-image clones inline styles including that transform — resulting
+ * in the content being rendered at a tiny scale in the top-left corner.
+ */
+function stripTransformForCapture(element: HTMLElement): () => void {
+	const original = element.style.transform;
+	const originalOrigin = element.style.transformOrigin;
+	element.style.transform = 'none';
+	element.style.transformOrigin = '';
+	return () => {
+		element.style.transform = original;
+		element.style.transformOrigin = originalOrigin;
+	};
 }
 
 /** Convert a fetch-able URL to a base64 data URL */
@@ -327,6 +334,9 @@ export async function captureFrames(
 	const pixelRatio = computeExportPixelRatio(element, resolution);
 	const frames: Blob[] = [];
 
+	// Strip the viewScale CSS transform so html-to-image captures at full size
+	const restoreTransform = stripTransformForCapture(element);
+
 	// Pre-inline all images as data URLs — this is the key optimization.
 	// html-to-image clones the DOM and re-fetches every <img> src for each
 	// frame. With data URLs already inlined, the clone inherits them and
@@ -347,8 +357,9 @@ export async function captureFrames(
 			onProgress?.((i + 1) / totalFrames * 100);
 		}
 	} finally {
-		// Restore original image sources so the live UI isn't affected
+		// Restore original image sources and CSS transform
 		restoreImages();
+		restoreTransform();
 	}
 
 	return frames;
