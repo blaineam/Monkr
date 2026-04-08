@@ -262,6 +262,7 @@
 					<!-- svelte-ignore a11y_click_events_have_key_events -->
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
 					<div
+						data-object-id={obj.id}
 						class="absolute {dragging === obj.id ? 'cursor-grabbing' : 'cursor-grab'}"
 						style="left: {obj.x}%; top: {obj.y}%;
 							transform: translate(-50%, -50%) scale({maxScale * obj.scale}) rotate({obj.rotation ?? 0}deg);"

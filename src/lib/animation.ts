@@ -1,4 +1,4 @@
-import { toPng } from 'html-to-image';
+import { toPng, toBlob } from 'html-to-image';
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile } from '@ffmpeg/util';
 
@@ -201,6 +201,8 @@ export function createDefaultAnimationConfig(): AnimationConfig {
 	};
 }
 
+// ─── Frame Capture ────────────────────────────────────────────
+
 /** Max export resolution — clamp to 4K */
 const MAX_EXPORT_WIDTH = 3840;
 const MAX_EXPORT_HEIGHT = 2160;
@@ -216,14 +218,227 @@ function computeExportPixelRatio(element: HTMLElement): number {
 	return Math.min(1, scaleW, scaleH);
 }
 
+/** Load an image element from a src URL */
+function loadImage(src: string): Promise<HTMLImageElement> {
+	return new Promise((resolve, reject) => {
+		const img = new Image();
+		img.onload = () => resolve(img);
+		img.onerror = reject;
+		img.src = src;
+	});
+}
+
+interface ObjectSnapshot {
+	id: string;
+	/** Isolated object image (transparent background) */
+	image: HTMLImageElement;
+	/** Pixel width/height of the isolated image */
+	imgW: number;
+	imgH: number;
+}
+
 /**
- * Capture frames from a DOM element.
+ * Fast frame capture via canvas compositing.
  *
- * Uses toPng (data URL) instead of toBlob for faster capture on Safari,
- * then batch-converts to blobs at the end. Also caps output to 4K and
- * clamps FPS to 60.
+ * Strategy: capture the background and each object ONCE using html-to-image,
+ * isolate each object by pixel-diffing against the background, then composite
+ * every animation frame on a Canvas2D with pure drawImage + transform calls.
+ *
+ * html-to-image is called (1 + N) times total (N = object count),
+ * instead of once per frame. For a 2s@30fps animation that's 2 calls vs 60.
  */
 export async function captureFrames(
+	element: HTMLElement,
+	duration: number,
+	fps: number,
+	onFrame: (time: number) => void,
+	onProgress?: (pct: number) => void,
+	tracks?: AnimationTrack[]
+): Promise<Blob[]> {
+	const clampedFps = Math.min(fps, MAX_EXPORT_FPS);
+	const totalFrames = Math.ceil((duration / 1000) * clampedFps);
+	const frameInterval = duration / totalFrames;
+	const pixelRatio = computeExportPixelRatio(element);
+
+	// Find object wrapper elements
+	const objectEls = element.querySelectorAll<HTMLElement>('[data-object-id]');
+
+	// If no objects or no tracks, use slow path
+	if (objectEls.length === 0 || !tracks || tracks.length === 0) {
+		return captureFramesSlow(element, duration, fps, onFrame, onProgress);
+	}
+
+	// ─── Phase 1: Capture background (all objects hidden) ───
+	onProgress?.(0);
+
+	// Save & hide all objects
+	const savedStyles: Map<HTMLElement, { vis: string }> = new Map();
+	objectEls.forEach((el) => {
+		savedStyles.set(el, { vis: el.style.visibility });
+		el.style.visibility = 'hidden';
+	});
+
+	await new Promise<void>((r) => requestAnimationFrame(() => r()));
+	const bgDataUrl = await toPng(element, { pixelRatio, cacheBust: false });
+	const bgImg = await loadImage(bgDataUrl);
+
+	const canvasW = bgImg.width;
+	const canvasH = bgImg.height;
+
+	// Get background pixel data for diffing
+	const diffCvs = document.createElement('canvas');
+	diffCvs.width = canvasW;
+	diffCvs.height = canvasH;
+	const diffCtx = diffCvs.getContext('2d', { willReadFrequently: true })!;
+	diffCtx.drawImage(bgImg, 0, 0);
+	const bgPixelData = diffCtx.getImageData(0, 0, canvasW, canvasH);
+
+	// ─── Phase 2: Capture each object (show one at a time, diff with bg) ───
+	const snapshots: ObjectSnapshot[] = [];
+
+	for (const el of objectEls) {
+		const objId = el.getAttribute('data-object-id')!;
+
+		// Show only this object, positioned at center with identity transform
+		el.style.visibility = 'visible';
+		const savedTransform = el.style.transform;
+		const savedLeft = el.style.left;
+		const savedTop = el.style.top;
+
+		el.style.left = '50%';
+		el.style.top = '50%';
+		el.style.transform = 'translate(-50%, -50%)';
+
+		await new Promise<void>((r) => requestAnimationFrame(() => r()));
+		const objDataUrl = await toPng(element, { pixelRatio, cacheBust: false });
+		const objFullImg = await loadImage(objDataUrl);
+
+		// Restore
+		el.style.transform = savedTransform;
+		el.style.left = savedLeft;
+		el.style.top = savedTop;
+		el.style.visibility = 'hidden';
+
+		// Diff to isolate the object from the background
+		diffCtx.clearRect(0, 0, canvasW, canvasH);
+		diffCtx.drawImage(objFullImg, 0, 0);
+		const objPixelData = diffCtx.getImageData(0, 0, canvasW, canvasH);
+		const isoData = diffCtx.createImageData(canvasW, canvasH);
+
+		let minX = canvasW, minY = canvasH, maxX = 0, maxY = 0;
+
+		for (let p = 0; p < objPixelData.data.length; p += 4) {
+			const dr = Math.abs(objPixelData.data[p] - bgPixelData.data[p]);
+			const dg = Math.abs(objPixelData.data[p + 1] - bgPixelData.data[p + 1]);
+			const db = Math.abs(objPixelData.data[p + 2] - bgPixelData.data[p + 2]);
+			const diff = dr + dg + db;
+
+			if (diff > 8) {
+				isoData.data[p] = objPixelData.data[p];
+				isoData.data[p + 1] = objPixelData.data[p + 1];
+				isoData.data[p + 2] = objPixelData.data[p + 2];
+				isoData.data[p + 3] = Math.min(255, diff * 4);
+
+				const px = (p / 4) % canvasW;
+				const py = Math.floor((p / 4) / canvasW);
+				if (px < minX) minX = px;
+				if (px > maxX) maxX = px;
+				if (py < minY) minY = py;
+				if (py > maxY) maxY = py;
+			}
+		}
+
+		// Crop to bounding box
+		const cropW = maxX - minX + 1;
+		const cropH = maxY - minY + 1;
+		if (cropW > 0 && cropH > 0) {
+			diffCtx.putImageData(isoData, 0, 0);
+			const croppedData = diffCtx.getImageData(minX, minY, cropW, cropH);
+			const cropCvs = document.createElement('canvas');
+			cropCvs.width = cropW;
+			cropCvs.height = cropH;
+			const cropCtx = cropCvs.getContext('2d')!;
+			cropCtx.putImageData(croppedData, 0, 0);
+			const croppedUrl = cropCvs.toDataURL('image/png');
+			const croppedImg = await loadImage(croppedUrl);
+
+			snapshots.push({ id: objId, image: croppedImg, imgW: cropW, imgH: cropH });
+		}
+	}
+
+	// Restore all objects
+	objectEls.forEach((el) => {
+		const saved = savedStyles.get(el);
+		if (saved) el.style.visibility = saved.vis;
+	});
+
+	onProgress?.(10);
+
+	// ─── Phase 3: Composite each frame ───
+	const compositeCvs = document.createElement('canvas');
+	compositeCvs.width = canvasW;
+	compositeCvs.height = canvasH;
+	const compCtx = compositeCvs.getContext('2d')!;
+
+	const frames: Blob[] = [];
+
+	for (let i = 0; i < totalFrames; i++) {
+		const time = i * frameInterval;
+
+		// Evaluate track values for this time
+		const animValues: Map<string, Map<string, number>> = new Map();
+		for (const track of tracks) {
+			const val = getValueAtTime(track, time);
+			if (val !== undefined) {
+				if (!animValues.has(track.targetId)) animValues.set(track.targetId, new Map());
+				animValues.get(track.targetId)!.set(track.property, val);
+			}
+		}
+
+		// Draw background
+		compCtx.clearRect(0, 0, canvasW, canvasH);
+		compCtx.drawImage(bgImg, 0, 0);
+
+		// Draw each object with animated transforms
+		for (const snap of snapshots) {
+			const vals = animValues.get(snap.id);
+
+			// Get animated properties (fall back to base values if not animated)
+			const animX = vals?.get('x') ?? 50;
+			const animY = vals?.get('y') ?? 50;
+			const animScale = vals?.get('scale') ?? 1;
+			const animRotation = vals?.get('rotation') ?? 0;
+			// tiltX/tiltY aren't easily replicated in 2D canvas, but rotation + scale + position are
+
+			// Object was captured centered at (50%, 50%) = (canvasW/2, canvasH/2).
+			// Animated position is at (animX%, animY%).
+			const posX = (animX / 100) * canvasW;
+			const posY = (animY / 100) * canvasH;
+
+			compCtx.save();
+			compCtx.translate(posX, posY);
+			compCtx.rotate((animRotation * Math.PI) / 180);
+			compCtx.scale(animScale, animScale);
+			// Draw centered
+			compCtx.drawImage(snap.image, -snap.imgW / 2, -snap.imgH / 2);
+			compCtx.restore();
+		}
+
+		const blob = await new Promise<Blob | null>((resolve) =>
+			compositeCvs.toBlob((b) => resolve(b), 'image/png')
+		);
+		if (blob) frames.push(blob);
+		onProgress?.(10 + ((i + 1) / totalFrames) * 90);
+	}
+
+	return frames;
+}
+
+/**
+ * Slow fallback: captures the full DOM via html-to-image for every frame.
+ * Used when compositing isn't possible.
+ */
+async function captureFramesSlow(
 	element: HTMLElement,
 	duration: number,
 	fps: number,
@@ -233,33 +448,23 @@ export async function captureFrames(
 	const clampedFps = Math.min(fps, MAX_EXPORT_FPS);
 	const totalFrames = Math.ceil((duration / 1000) * clampedFps);
 	const frameInterval = duration / totalFrames;
-	const dataUrls: string[] = [];
 	const pixelRatio = computeExportPixelRatio(element);
+	const frames: Blob[] = [];
 
 	for (let i = 0; i < totalFrames; i++) {
 		const time = i * frameInterval;
 		onFrame(time);
+		await new Promise<void>((r) => setTimeout(r, 0));
 
-		// Single RAF to let Svelte flush DOM updates
-		await new Promise<void>((r) => requestAnimationFrame(() => r()));
-
-		// toPng returns a data URL — faster than toBlob on Safari
-		const dataUrl = await toPng(element, {
-			pixelRatio,
-			cacheBust: false
-		});
-		dataUrls.push(dataUrl);
+		const blob = await toBlob(element, { pixelRatio, cacheBust: false });
+		if (blob) frames.push(blob);
 		onProgress?.((i + 1) / totalFrames * 100);
 	}
 
-	// Batch convert data URLs to blobs
-	const frames: Blob[] = [];
-	for (const dataUrl of dataUrls) {
-		const res = await fetch(dataUrl);
-		frames.push(await res.blob());
-	}
 	return frames;
 }
+
+// ─── Video Export ─────────────────────────────────────────────
 
 export type VideoFormat = 'mp4' | 'mov' | 'webm';
 
@@ -270,14 +475,12 @@ let _ffmpegLoading = false;
 async function getFFmpeg(onLog?: (msg: string) => void): Promise<FFmpeg> {
 	if (_ffmpeg && _ffmpeg.loaded) return _ffmpeg;
 	if (_ffmpegLoading) {
-		// Wait for in-flight load
 		while (_ffmpegLoading) await new Promise((r) => setTimeout(r, 100));
 		if (_ffmpeg?.loaded) return _ffmpeg;
 	}
 	_ffmpegLoading = true;
 	const ffmpeg = new FFmpeg();
 	if (onLog) ffmpeg.on('log', ({ message }) => onLog(message));
-	// Use single-threaded core (no SharedArrayBuffer requirement) as fallback
 	const useMT = typeof SharedArrayBuffer !== 'undefined';
 	if (useMT) {
 		await ffmpeg.load({
@@ -296,7 +499,7 @@ async function getFFmpeg(onLog?: (msg: string) => void): Promise<FFmpeg> {
 	return ffmpeg;
 }
 
-/** Export frames as MP4 video using FFmpeg WASM */
+/** Export frames as video using FFmpeg WASM */
 export async function exportAsVideo(
 	frames: Blob[],
 	width: number,
@@ -308,14 +511,12 @@ export async function exportAsVideo(
 ): Promise<Blob> {
 	const ffmpeg = await getFFmpeg(onLog);
 
-	// Write frame PNGs to FFmpeg virtual FS
 	const allFrames = loop ? [...frames, ...frames] : frames;
 	for (let i = 0; i < allFrames.length; i++) {
 		const data = new Uint8Array(await allFrames[i].arrayBuffer());
 		await ffmpeg.writeFile(`frame${String(i).padStart(5, '0')}.png`, data);
 	}
 
-	// Encode to chosen format
 	const ext = format === 'mov' ? 'mov' : format === 'webm' ? 'webm' : 'mp4';
 	const outputFile = `output.${ext}`;
 
@@ -330,8 +531,6 @@ export async function exportAsVideo(
 			outputFile
 		]);
 	} else {
-		// MP4 or MOV — use H.264
-		// Ensure dimensions are even (H.264 requirement)
 		const ew = width % 2 === 0 ? width : width + 1;
 		const eh = height % 2 === 0 ? height : height + 1;
 		await ffmpeg.exec([

@@ -142,6 +142,7 @@
 			duration,
 			fps,
 			(time) => {
+				// Fallback path: mutate DOM for slow per-frame capture
 				for (const track of tracks) {
 					const val = getValueAtTime(track, time);
 					if (val !== undefined) {
@@ -149,7 +150,8 @@
 					}
 				}
 			},
-			(pct) => { animExportProgress = pct * 0.5; } // first 50% is frame capture
+			(pct) => { animExportProgress = pct * 0.5; }, // first 50% is frame capture
+			tracks // pass tracks for fast compositing path
 		);
 
 		try {
