@@ -78,6 +78,7 @@ export function loadFont(family: string) {
 
 	const link = document.createElement('link');
 	link.rel = 'stylesheet';
+	link.crossOrigin = 'anonymous';
 	link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family)}:wght@300;400;500;600;700;800;900&display=swap`;
 	document.head.appendChild(link);
 }
