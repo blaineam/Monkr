@@ -223,18 +223,82 @@ function computeExportPixelRatio(element: HTMLElement, resolution: AnimResolutio
 	return Math.min(1, scaleW, scaleH);
 }
 
+/** Convert a fetch-able URL to a base64 data URL */
+async function urlToDataUrl(url: string): Promise<string> {
+	const resp = await fetch(url);
+	const blob = await resp.blob();
+	return new Promise((resolve, reject) => {
+		const reader = new FileReader();
+		reader.onloadend = () => resolve(reader.result as string);
+		reader.onerror = reject;
+		reader.readAsDataURL(blob);
+	});
+}
+
 /**
- * Capture animation frames by rendering the live DOM for each frame.
+ * Pre-inline all images within a DOM subtree as base64 data URLs.
+ * This includes both <img> elements and CSS background-image URLs.
  *
- * The caller's onFrame callback mutates the reactive store which updates
- * the DOM with the correct transforms for each time step. We then capture
- * the fully-rendered DOM via html-to-image.
+ * html-to-image clones the DOM and re-fetches/re-encodes every image
+ * source for EACH frame. By inlining them as data URLs first, the cloned
+ * DOM inherits the data URLs and the library skips all I/O — this is
+ * the single biggest speedup for frame capture on Safari.
  *
- * Optimizations over naive approach:
- *  - Capped at 1080p output (pixelRatio scales down large canvases)
+ * Returns a cleanup function that restores original sources.
+ */
+async function preInlineImages(root: HTMLElement): Promise<() => void> {
+	const imgOriginals = new Map<HTMLImageElement, string>();
+	const bgOriginals = new Map<HTMLElement, string>();
+
+	// Inline <img> src attributes
+	const imgs = root.querySelectorAll('img');
+	await Promise.all(Array.from(imgs).map(async (img) => {
+		const src = img.src;
+		if (!src || src.startsWith('data:')) return;
+		imgOriginals.set(img, src);
+		try {
+			img.src = await urlToDataUrl(src);
+		} catch {
+			// leave original src
+		}
+	}));
+
+	// Inline CSS background-image url() values
+	const allElements = root.querySelectorAll<HTMLElement>('*');
+	await Promise.all(Array.from(allElements).map(async (el) => {
+		const bgImg = el.style.backgroundImage;
+		if (!bgImg || !bgImg.includes('url(')) return;
+		const match = bgImg.match(/url\(["']?([^"')]+)["']?\)/);
+		if (!match || !match[1] || match[1].startsWith('data:')) return;
+		const url = match[1];
+		bgOriginals.set(el, bgImg);
+		try {
+			const dataUrl = await urlToDataUrl(url);
+			el.style.backgroundImage = `url(${dataUrl})`;
+		} catch {
+			// leave original
+		}
+	}));
+
+	return () => {
+		for (const [img, src] of imgOriginals) img.src = src;
+		for (const [el, bg] of bgOriginals) el.style.backgroundImage = bg;
+	};
+}
+
+/**
+ * Capture animation frames with pre-inlined images for speed.
+ *
+ * The main bottleneck is html-to-image re-fetching and re-encoding every
+ * <img> element (device frame PNGs, screenshots) for each frame. By
+ * pre-converting all images to base64 data URLs before the capture loop,
+ * we eliminate the per-frame fetch/encode overhead entirely.
+ *
+ * Additional optimizations:
+ *  - Resolution capped at user's choice (1080p or 4K)
  *  - FPS clamped to 60
- *  - setTimeout(0) instead of double-RAF for faster yields
- *  - cacheBust: false to reuse resolved resources across frames
+ *  - cacheBust: false to skip query-param cache busting
+ *  - setTimeout(0) for fast DOM yield between frames
  */
 export async function captureFrames(
 	element: HTMLElement,
@@ -242,7 +306,7 @@ export async function captureFrames(
 	fps: number,
 	onFrame: (time: number) => void,
 	onProgress?: (pct: number) => void,
-	_tracks?: AnimationTrack[], // reserved for future use
+	_tracks?: AnimationTrack[],
 	resolution: AnimResolution = '1080p'
 ): Promise<Blob[]> {
 	const clampedFps = Math.min(fps, MAX_EXPORT_FPS);
@@ -251,16 +315,28 @@ export async function captureFrames(
 	const pixelRatio = computeExportPixelRatio(element, resolution);
 	const frames: Blob[] = [];
 
-	for (let i = 0; i < totalFrames; i++) {
-		const time = i * frameInterval;
-		onFrame(time);
+	// Pre-inline all images as data URLs — this is the key optimization.
+	// html-to-image clones the DOM and re-fetches every <img> src for each
+	// frame. With data URLs already inlined, the clone inherits them and
+	// the library skips all network I/O and re-encoding.
+	onProgress?.(0);
+	const restoreImages = await preInlineImages(element);
 
-		// Yield to let Svelte flush DOM updates
-		await new Promise<void>((r) => setTimeout(r, 0));
+	try {
+		for (let i = 0; i < totalFrames; i++) {
+			const time = i * frameInterval;
+			onFrame(time);
 
-		const blob = await toBlob(element, { pixelRatio, cacheBust: false });
-		if (blob) frames.push(blob);
-		onProgress?.((i + 1) / totalFrames * 100);
+			// Yield to let Svelte flush DOM updates
+			await new Promise<void>((r) => setTimeout(r, 0));
+
+			const blob = await toBlob(element, { pixelRatio, cacheBust: false });
+			if (blob) frames.push(blob);
+			onProgress?.((i + 1) / totalFrames * 100);
+		}
+	} finally {
+		// Restore original image sources so the live UI isn't affected
+		restoreImages();
 	}
 
 	return frames;
