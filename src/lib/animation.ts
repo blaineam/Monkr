@@ -212,7 +212,17 @@ const RESOLUTION_CAPS: Record<AnimResolution, { w: number; h: number }> = {
 	'4k': { w: 3840, h: 2160 }
 };
 
-/** Compute a pixel ratio that keeps the output within bounds */
+/**
+ * Compute pixelRatio for html-to-image capture.
+ *
+ * The canvas element is displayed at a small size on screen (scaled by
+ * viewScale to fit the viewport), but we need to capture at the full
+ * logical resolution or the target resolution cap, whichever is smaller.
+ *
+ * Example: a 1920×1080 logical canvas displayed at 400×300 on screen
+ * needs pixelRatio = min(1920/400, 1080/300) = 3.6 to produce a
+ * 1440×1080 output image (aspect-fit to 1080p).
+ */
 function computeExportPixelRatio(element: HTMLElement, resolution: AnimResolution = '1080p'): number {
 	const w = element.offsetWidth;
 	const h = element.offsetHeight;
@@ -220,7 +230,9 @@ function computeExportPixelRatio(element: HTMLElement, resolution: AnimResolutio
 	const cap = RESOLUTION_CAPS[resolution];
 	const scaleW = cap.w / w;
 	const scaleH = cap.h / h;
-	return Math.min(1, scaleW, scaleH);
+	// Scale UP to fill the target resolution (no cap at 1 — the element
+	// is displayed smaller than its logical size due to viewScale)
+	return Math.min(scaleW, scaleH);
 }
 
 /** Convert a fetch-able URL to a base64 data URL */

@@ -159,11 +159,11 @@
 			animExportStatus = 'Loading FFmpeg...';
 			animExportProgress = 50;
 
-			// Compute output dimensions (capped to selected resolution)
+			// Compute output dimensions — scale UP from displayed size to target resolution
 			const resCap = animResolution === '4k' ? { w: 3840, h: 2160 } : { w: 1920, h: 1080 };
 			const rawW = canvasRef.offsetWidth;
 			const rawH = canvasRef.offsetHeight;
-			const capScale = Math.min(1, resCap.w / rawW, resCap.h / rawH);
+			const capScale = Math.min(resCap.w / rawW, resCap.h / rawH);
 			const outW = Math.round(rawW * capScale);
 			const outH = Math.round(rawH * capScale);
 
