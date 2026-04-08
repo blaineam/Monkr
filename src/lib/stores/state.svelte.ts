@@ -165,23 +165,75 @@ function createDefaultState(): MonkrState {
 
 const AUTOSAVE_KEY = 'monkr_autosave';
 
-/** Serialize state for localStorage (strips blob URLs and File objects) */
-function serializeState(state: MonkrState): string {
+/** Convert a blob URL to a base64 data URL */
+async function blobUrlToDataUrl(blobUrl: string | null): Promise<string | null> {
+	if (!blobUrl) return null;
+	try {
+		const blob = await fetch(blobUrl).then((r) => r.blob());
+		return new Promise((resolve) => {
+			const reader = new FileReader();
+			reader.onloadend = () => resolve(reader.result as string);
+			reader.onerror = () => resolve(null);
+			reader.readAsDataURL(blob);
+		});
+	} catch {
+		return null;
+	}
+}
+
+/** Resize an image blob URL to a JPEG data URL capped at maxDim to save space */
+async function blobUrlToCompressedDataUrl(blobUrl: string | null, maxDim = 1200): Promise<string | null> {
+	if (!blobUrl) return null;
+	try {
+		const blob = await fetch(blobUrl).then((r) => r.blob());
+		const bmp = await createImageBitmap(blob);
+		const scale = Math.min(1, maxDim / Math.max(bmp.width, bmp.height));
+		const w = Math.round(bmp.width * scale);
+		const h = Math.round(bmp.height * scale);
+		const canvas = new OffscreenCanvas(w, h);
+		const ctx = canvas.getContext('2d')!;
+		ctx.drawImage(bmp, 0, 0, w, h);
+		bmp.close();
+		const outBlob = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.7 });
+		return new Promise((resolve) => {
+			const reader = new FileReader();
+			reader.onloadend = () => resolve(reader.result as string);
+			reader.onerror = () => resolve(null);
+			reader.readAsDataURL(outBlob);
+		});
+	} catch {
+		return blobUrlToDataUrl(blobUrl);
+	}
+}
+
+/** Serialize state for localStorage (converts images to data URLs) */
+async function serializeState(state: MonkrState): Promise<string> {
+	// Convert background image blob URL to data URL so it persists
+	let bgImageDataUrl: string | null = null;
+	if (state.background.type === 'image' && state.background.imageUrl) {
+		bgImageDataUrl = await blobUrlToCompressedDataUrl(state.background.imageUrl);
+	}
+
+	// Convert device screenshots to compressed data URLs
+	const sceneObjects = await Promise.all(
+		state.sceneObjects.map(async (o) => ({
+			...o,
+			screenshotUrl: await blobUrlToCompressedDataUrl(o.screenshotUrl),
+			screenshotFile: null,
+			extraScreenshots: [] // extras are too large for localStorage
+		}))
+	);
+
 	return JSON.stringify({
 		version: 3,
-		background: { ...state.background, imageUrl: null },
+		background: { ...state.background, imageUrl: bgImageDataUrl },
 		canvasSize: state.canvasSize,
 		padding: state.padding,
 		exportConfig: state.exportConfig,
 		textOverlay: state.textOverlay,
 		textBlocks: state.textBlocks,
 		selectedTextId: state.selectedTextId,
-		sceneObjects: state.sceneObjects.map((o) => ({
-			...o,
-			screenshotUrl: null,
-			screenshotFile: null,
-			extraScreenshots: []
-		})),
+		sceneObjects,
 		selectedObjectId: state.selectedObjectId,
 		activeMockupId: state.activeMockupId,
 		mockupImageUrl: null,
@@ -202,11 +254,27 @@ function loadPersistedState(): MonkrState {
 		const saved = JSON.parse(raw);
 		if (!saved.version) return createDefaultState();
 		const defaults = createDefaultState();
-		// If background was image type but we can't restore the blob URL, fall back to gradient
+		// Restore background image from data URL if present
 		const savedBg = saved.background ?? {};
-		const bgType = savedBg.type === 'image' ? 'gradient' : (savedBg.type ?? defaults.background.type);
+		let bgImageUrl: string | null = null;
+		let bgType = savedBg.type ?? defaults.background.type;
+		if (savedBg.imageUrl && savedBg.imageUrl.startsWith('data:')) {
+			try {
+				const [header, base64] = savedBg.imageUrl.split(',');
+				const mime = header.match(/data:(.*?);/)?.[1] ?? 'image/png';
+				const bytes = atob(base64);
+				const arr = new Uint8Array(bytes.length);
+				for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+				bgImageUrl = URL.createObjectURL(new Blob([arr], { type: mime }));
+			} catch {
+				bgType = bgType === 'image' ? 'gradient' : bgType;
+			}
+		} else if (bgType === 'image') {
+			// No data URL available, fall back to gradient
+			bgType = 'gradient';
+		}
 		const state: MonkrState = {
-			background: { ...defaults.background, ...savedBg, imageUrl: null, type: bgType },
+			background: { ...defaults.background, ...savedBg, imageUrl: bgImageUrl, type: bgType },
 			canvasSize: saved.canvasSize ?? defaults.canvasSize,
 			padding: saved.padding ?? defaults.padding,
 			exportConfig: saved.exportConfig ?? defaults.exportConfig,
@@ -217,13 +285,27 @@ function loadPersistedState(): MonkrState {
 				id: genTextId()
 			})),
 			selectedTextId: null,
-			sceneObjects: (saved.sceneObjects ?? []).map((o: SceneObject) => ({
-				...createDefaultObject(),
-				...o,
-				screenshotUrl: null,
-				screenshotFile: null,
-				id: genId()
-			})),
+			sceneObjects: (saved.sceneObjects ?? []).map((o: any) => {
+				let screenshotUrl: string | null = null;
+				if (o.screenshotUrl && typeof o.screenshotUrl === 'string' && o.screenshotUrl.startsWith('data:')) {
+					try {
+						const [header, base64] = o.screenshotUrl.split(',');
+						const mime = header.match(/data:(.*?);/)?.[1] ?? 'image/png';
+						const bytes = atob(base64);
+						const arr = new Uint8Array(bytes.length);
+						for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+						screenshotUrl = URL.createObjectURL(new Blob([arr], { type: mime }));
+					} catch { /* ignore */ }
+				}
+				return {
+					...createDefaultObject(),
+					...o,
+					screenshotUrl,
+					screenshotFile: null,
+					extraScreenshots: [],
+					id: genId()
+				};
+			}),
 			selectedObjectId: null,
 			activeMockupId: saved.activeMockupId ?? null,
 			mockupImageUrl: null,
@@ -265,9 +347,10 @@ class MonkrStore {
 	/** Debounced auto-save to localStorage */
 	private _scheduleSave() {
 		if (this._saveTimer) clearTimeout(this._saveTimer);
-		this._saveTimer = setTimeout(() => {
+		this._saveTimer = setTimeout(async () => {
 			try {
-				localStorage.setItem(AUTOSAVE_KEY, serializeState(this._state));
+				const json = await serializeState(this._state);
+				localStorage.setItem(AUTOSAVE_KEY, json);
 			} catch { /* quota exceeded — silently ignore */ }
 		}, 500);
 	}
