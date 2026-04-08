@@ -1,4 +1,4 @@
-import { toBlob, toPng } from 'html-to-image';
+import { toPng } from 'html-to-image';
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile } from '@ffmpeg/util';
 
@@ -201,7 +201,28 @@ export function createDefaultAnimationConfig(): AnimationConfig {
 	};
 }
 
-/** Capture frames from a DOM element as an array of blobs */
+/** Max export resolution — clamp to 4K */
+const MAX_EXPORT_WIDTH = 3840;
+const MAX_EXPORT_HEIGHT = 2160;
+const MAX_EXPORT_FPS = 60;
+
+/** Compute a pixel ratio that keeps the output within 4K bounds */
+function computeExportPixelRatio(element: HTMLElement): number {
+	const w = element.offsetWidth;
+	const h = element.offsetHeight;
+	if (w <= 0 || h <= 0) return 1;
+	const scaleW = MAX_EXPORT_WIDTH / w;
+	const scaleH = MAX_EXPORT_HEIGHT / h;
+	return Math.min(1, scaleW, scaleH);
+}
+
+/**
+ * Capture frames from a DOM element.
+ *
+ * Uses toPng (data URL) instead of toBlob for faster capture on Safari,
+ * then batch-converts to blobs at the end. Also caps output to 4K and
+ * clamps FPS to 60.
+ */
 export async function captureFrames(
 	element: HTMLElement,
 	duration: number,
@@ -209,21 +230,34 @@ export async function captureFrames(
 	onFrame: (time: number) => void,
 	onProgress?: (pct: number) => void
 ): Promise<Blob[]> {
-	const totalFrames = Math.ceil((duration / 1000) * fps);
+	const clampedFps = Math.min(fps, MAX_EXPORT_FPS);
+	const totalFrames = Math.ceil((duration / 1000) * clampedFps);
 	const frameInterval = duration / totalFrames;
-	const frames: Blob[] = [];
+	const dataUrls: string[] = [];
+	const pixelRatio = computeExportPixelRatio(element);
 
 	for (let i = 0; i < totalFrames; i++) {
 		const time = i * frameInterval;
 		onFrame(time);
-		// Allow DOM to update
-		await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-		const blob = await toBlob(element, { pixelRatio: 1, cacheBust: false });
-		if (blob) frames.push(blob);
+		// Single RAF to let Svelte flush DOM updates
+		await new Promise<void>((r) => requestAnimationFrame(() => r()));
+
+		// toPng returns a data URL — faster than toBlob on Safari
+		const dataUrl = await toPng(element, {
+			pixelRatio,
+			cacheBust: false
+		});
+		dataUrls.push(dataUrl);
 		onProgress?.((i + 1) / totalFrames * 100);
 	}
 
+	// Batch convert data URLs to blobs
+	const frames: Blob[] = [];
+	for (const dataUrl of dataUrls) {
+		const res = await fetch(dataUrl);
+		frames.push(await res.blob());
+	}
 	return frames;
 }
 

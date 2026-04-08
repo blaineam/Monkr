@@ -156,10 +156,18 @@
 			animExportStatus = 'Loading FFmpeg...';
 			animExportProgress = 50;
 
+			// Compute output dimensions (capped to 4K)
+			const maxW = 3840, maxH = 2160;
+			const rawW = canvasRef.offsetWidth;
+			const rawH = canvasRef.offsetHeight;
+			const capScale = Math.min(1, maxW / rawW, maxH / rawH);
+			const outW = Math.round(rawW * capScale);
+			const outH = Math.round(rawH * capScale);
+
 			const video = await exportAsVideo(
 				frames,
-				store.canvasSize.width,
-				store.canvasSize.height,
+				outW,
+				outH,
 				fps,
 				store.animation.loop,
 				animVideoFormat,
