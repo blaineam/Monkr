@@ -94,7 +94,7 @@
 	let animResolution = $state<AnimResolution>('1080p');
 	let animExportStatus = $state('');
 	let animExportCancelled = $state(false);
-	let animPreviewTimer = $state<ReturnType<typeof setInterval> | null>(null);
+	let animPreviewRaf = $state<number | null>(null);
 	let animPreviewTime = $state(0);
 
 	function startAnimPreview() {
@@ -107,7 +107,9 @@
 		const startTime = performance.now();
 
 		animPreviewing = true;
-		animPreviewTimer = setInterval(() => {
+
+		function tick() {
+			if (!animPreviewing) return;
 			const elapsed = (performance.now() - startTime) % duration;
 			animPreviewTime = elapsed;
 			for (const track of tracks) {
@@ -116,12 +118,14 @@
 					store.updateObject(track.targetId, { [track.property]: val });
 				}
 			}
-		}, 1000 / store.animation.fps);
+			animPreviewRaf = requestAnimationFrame(tick);
+		}
+		animPreviewRaf = requestAnimationFrame(tick);
 	}
 
 	function stopAnimPreview() {
-		if (animPreviewTimer) clearInterval(animPreviewTimer);
-		animPreviewTimer = null;
+		if (animPreviewRaf != null) cancelAnimationFrame(animPreviewRaf);
+		animPreviewRaf = null;
 		animPreviewing = false;
 	}
 
