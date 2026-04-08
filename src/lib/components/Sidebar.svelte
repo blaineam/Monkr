@@ -42,7 +42,7 @@
 	import { scenePresets } from '../scenes';
 	import { mockupScenes } from '../mockups';
 	import { fontFamilies, loadFont, preloadFonts } from '../fonts';
-	import { animationPresets, getValueAtTime, scaleTracksToduration, captureFrames, exportAsVideo } from '../animation';
+	import { animationPresets, getValueAtTime, scaleTracksToduration, captureAndExportVideo } from '../animation';
 	import type { AnimationTrack, VideoFormat, AnimResolution } from '../animation';
 	import { onMount } from 'svelte';
 	import type { ExportFormat, ExportScale, FrameStyle } from '../types';
@@ -137,58 +137,51 @@
 		animExporting = true;
 		animExportCancelled = false;
 		animExportProgress = 0;
-		animExportStatus = 'Capturing frames...';
+		animExportStatus = 'Preparing...';
 
 		const objectIds = store.sceneObjects.map((o) => o.id);
 		const duration = store.animation.duration;
 		const fps = store.animation.fps;
 		const tracks = scaleTracksToduration(preset.createTracks(objectIds), preset.duration, duration);
 
-		const frames = await captureFrames(
-			canvasRef,
-			duration,
-			fps,
-			(time) => {
-				for (const track of tracks) {
-					const val = getValueAtTime(track, time);
-					if (val !== undefined) {
-						store.updateObject(track.targetId, { [track.property]: val });
-					}
-				}
-			},
-			(pct) => { animExportProgress = pct * 0.5; }, // first 50% is frame capture
-			tracks,
-			animResolution,
-			() => animExportCancelled
-		);
-
-		if (animExportCancelled) {
-			animExporting = false;
-			animExportStatus = '';
-			return;
-		}
+		// Compute output dimensions (capped to selected resolution)
+		const resCap = animResolution === '4k' ? { w: 3840, h: 2160 } : { w: 1920, h: 1080 };
+		const rawW = canvasRef.offsetWidth;
+		const rawH = canvasRef.offsetHeight;
+		const capScale = Math.min(1, resCap.w / rawW, resCap.h / rawH);
+		const outW = Math.round(rawW * capScale);
+		const outH = Math.round(rawH * capScale);
 
 		try {
-			animExportStatus = 'Loading FFmpeg...';
-			animExportProgress = 50;
-
-			// Compute output dimensions (capped to selected resolution)
-			const resCap = animResolution === '4k' ? { w: 3840, h: 2160 } : { w: 1920, h: 1080 };
-			const rawW = canvasRef.offsetWidth;
-			const rawH = canvasRef.offsetHeight;
-			const capScale = Math.min(1, resCap.w / rawW, resCap.h / rawH);
-			const outW = Math.round(rawW * capScale);
-			const outH = Math.round(rawH * capScale);
-
-			const video = await exportAsVideo(
-				frames,
+			const video = await captureAndExportVideo(
+				canvasRef,
+				duration,
+				fps,
+				(time) => {
+					for (const track of tracks) {
+						const val = getValueAtTime(track, time);
+						if (val !== undefined) {
+							store.updateObject(track.targetId, { [track.property]: val });
+						}
+					}
+				},
 				outW,
 				outH,
-				fps,
 				store.animation.loop,
 				animVideoFormat,
-				(msg) => { animExportStatus = msg.length > 40 ? msg.slice(0, 40) + '...' : msg; }
+				animResolution,
+				(pct) => { animExportProgress = pct; },
+				(msg) => { animExportStatus = msg; },
+				(msg) => { animExportStatus = msg.length > 40 ? msg.slice(0, 40) + '...' : msg; },
+				() => animExportCancelled
 			);
+
+			if (!video) {
+				// cancelled
+				animExporting = false;
+				animExportStatus = '';
+				return;
+			}
 
 			animExportProgress = 95;
 			animExportStatus = 'Downloading...';

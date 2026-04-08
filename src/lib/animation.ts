@@ -305,69 +305,6 @@ async function preInlineImages(root: HTMLElement): Promise<() => void> {
 	};
 }
 
-/**
- * Capture animation frames with pre-inlined images for speed.
- *
- * The main bottleneck is html-to-image re-fetching and re-encoding every
- * <img> element (device frame PNGs, screenshots) for each frame. By
- * pre-converting all images to base64 data URLs before the capture loop,
- * we eliminate the per-frame fetch/encode overhead entirely.
- *
- * Additional optimizations:
- *  - Resolution capped at user's choice (1080p or 4K)
- *  - FPS clamped to 60
- *  - cacheBust: false to skip query-param cache busting
- *  - setTimeout(0) for fast DOM yield between frames
- */
-export async function captureFrames(
-	element: HTMLElement,
-	duration: number,
-	fps: number,
-	onFrame: (time: number) => void,
-	onProgress?: (pct: number) => void,
-	_tracks?: AnimationTrack[],
-	resolution: AnimResolution = '1080p',
-	isCancelled?: () => boolean
-): Promise<Blob[]> {
-	const clampedFps = Math.min(fps, MAX_EXPORT_FPS);
-	const totalFrames = Math.ceil((duration / 1000) * clampedFps);
-	const frameInterval = duration / totalFrames;
-	const pixelRatio = computeExportPixelRatio(element, resolution);
-	const frames: Blob[] = [];
-
-	// Strip the viewScale CSS transform so html-to-image captures at full size
-	const restoreTransform = stripTransformForCapture(element);
-
-	// Pre-inline all images as data URLs — this is the key optimization.
-	// html-to-image clones the DOM and re-fetches every <img> src for each
-	// frame. With data URLs already inlined, the clone inherits them and
-	// the library skips all network I/O and re-encoding.
-	onProgress?.(0);
-	const restoreImages = await preInlineImages(element);
-
-	try {
-		for (let i = 0; i < totalFrames; i++) {
-			if (isCancelled?.()) break;
-
-			const time = i * frameInterval;
-			onFrame(time);
-
-			// Yield to let Svelte flush DOM updates
-			await new Promise<void>((r) => setTimeout(r, 0));
-
-			const blob = await toBlob(element, { pixelRatio, cacheBust: false });
-			if (blob) frames.push(blob);
-			onProgress?.((i + 1) / totalFrames * 100);
-		}
-	} finally {
-		// Restore original image sources and CSS transform
-		restoreImages();
-		restoreTransform();
-	}
-
-	return frames;
-}
-
 // ─── Video Export ─────────────────────────────────────────────
 
 export type VideoFormat = 'mp4' | 'mov' | 'webm';
@@ -403,30 +340,104 @@ async function getFFmpeg(onLog?: (msg: string) => void): Promise<FFmpeg> {
 	return ffmpeg;
 }
 
-/** Export frames as video using FFmpeg WASM */
-export async function exportAsVideo(
-	frames: Blob[],
+/**
+ * Capture frames and stream them directly to FFmpeg's virtual filesystem,
+ * then encode and return the video.
+ *
+ * Previous approach stored ALL frame Blobs in a JS array, which for a
+ * 2s/30fps/1080p animation could consume 200-300MB+ of heap and crash
+ * the tab. This version writes each frame to FFmpeg's WASM FS immediately
+ * after capture and releases the Blob, keeping JS heap usage constant.
+ */
+export async function captureAndExportVideo(
+	element: HTMLElement,
+	duration: number,
+	fps: number,
+	onFrame: (time: number) => void,
 	width: number,
 	height: number,
-	fps: number,
 	loop: boolean,
 	format: VideoFormat = 'mp4',
-	onLog?: (msg: string) => void
-): Promise<Blob> {
-	const ffmpeg = await getFFmpeg(onLog);
+	resolution: AnimResolution = '1080p',
+	onProgress?: (pct: number) => void,
+	onStatus?: (msg: string) => void,
+	onLog?: (msg: string) => void,
+	isCancelled?: () => boolean
+): Promise<Blob | null> {
+	const clampedFps = Math.min(fps, MAX_EXPORT_FPS);
+	const totalFrames = Math.ceil((duration / 1000) * clampedFps);
+	const frameInterval = duration / totalFrames;
+	const pixelRatio = computeExportPixelRatio(element, resolution);
 
-	const allFrames = loop ? [...frames, ...frames] : frames;
-	for (let i = 0; i < allFrames.length; i++) {
-		const data = new Uint8Array(await allFrames[i].arrayBuffer());
-		await ffmpeg.writeFile(`frame${String(i).padStart(5, '0')}.png`, data);
+	// ── Phase 1: Load FFmpeg while pre-inlining images ──
+	onStatus?.('Loading FFmpeg...');
+	onProgress?.(0);
+
+	const [ffmpeg, restoreImages] = await Promise.all([
+		getFFmpeg(onLog),
+		preInlineImages(element)
+	]);
+
+	// Strip the viewScale CSS transform so html-to-image captures at full size
+	const restoreTransform = stripTransformForCapture(element);
+
+	let frameCount = 0;
+
+	try {
+		// ── Phase 2: Capture frames → stream to FFmpeg FS ──
+		onStatus?.('Capturing frames...');
+
+		for (let i = 0; i < totalFrames; i++) {
+			if (isCancelled?.()) return null;
+
+			const time = i * frameInterval;
+			onFrame(time);
+
+			// Yield to let Svelte flush DOM updates
+			await new Promise<void>((r) => setTimeout(r, 0));
+
+			const blob = await toBlob(element, { pixelRatio, cacheBust: false });
+			if (blob) {
+				// Write frame directly to FFmpeg FS — blob is GC'd after this
+				const data = new Uint8Array(await blob.arrayBuffer());
+				const frameName = `frame${String(frameCount).padStart(5, '0')}.png`;
+				await ffmpeg.writeFile(frameName, data);
+				frameCount++;
+			}
+			// Frame capture is 70% of total progress
+			onProgress?.((i + 1) / totalFrames * 70);
+		}
+	} finally {
+		// Restore original image sources and CSS transform
+		restoreImages();
+		restoreTransform();
 	}
+
+	if (isCancelled?.() || frameCount === 0) return null;
+
+	// If looping, duplicate frames in FFmpeg FS (just copy references)
+	if (loop) {
+		onStatus?.('Preparing loop...');
+		for (let i = 0; i < frameCount; i++) {
+			const srcName = `frame${String(i).padStart(5, '0')}.png`;
+			const dstName = `frame${String(frameCount + i).padStart(5, '0')}.png`;
+			const data = await ffmpeg.readFile(srcName);
+			await ffmpeg.writeFile(dstName, data);
+		}
+	}
+
+	const totalWrittenFrames = loop ? frameCount * 2 : frameCount;
+
+	// ── Phase 3: Encode video ──
+	onStatus?.('Encoding video...');
+	onProgress?.(75);
 
 	const ext = format === 'mov' ? 'mov' : format === 'webm' ? 'webm' : 'mp4';
 	const outputFile = `output.${ext}`;
 
 	if (format === 'webm') {
 		await ffmpeg.exec([
-			'-framerate', String(fps),
+			'-framerate', String(clampedFps),
 			'-i', 'frame%05d.png',
 			'-c:v', 'libvpx-vp9',
 			'-pix_fmt', 'yuva420p',
@@ -438,7 +449,7 @@ export async function exportAsVideo(
 		const ew = width % 2 === 0 ? width : width + 1;
 		const eh = height % 2 === 0 ? height : height + 1;
 		await ffmpeg.exec([
-			'-framerate', String(fps),
+			'-framerate', String(clampedFps),
 			'-i', 'frame%05d.png',
 			'-vf', `scale=${ew}:${eh}`,
 			'-c:v', 'libx264',
@@ -450,13 +461,18 @@ export async function exportAsVideo(
 		]);
 	}
 
+	onProgress?.(90);
+	onStatus?.('Reading output...');
+
 	const result = await ffmpeg.readFile(outputFile);
 
-	// Clean up
-	for (let i = 0; i < allFrames.length; i++) {
-		await ffmpeg.deleteFile(`frame${String(i).padStart(5, '0')}.png`);
+	// Clean up FFmpeg FS
+	for (let i = 0; i < totalWrittenFrames; i++) {
+		await ffmpeg.deleteFile(`frame${String(i).padStart(5, '0')}.png`).catch(() => {});
 	}
-	await ffmpeg.deleteFile(outputFile);
+	await ffmpeg.deleteFile(outputFile).catch(() => {});
+
+	onProgress?.(95);
 
 	const mimeType = format === 'webm' ? 'video/webm'
 		: format === 'mov' ? 'video/quicktime'
