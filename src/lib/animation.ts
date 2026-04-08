@@ -203,49 +203,33 @@ export function createDefaultAnimationConfig(): AnimationConfig {
 
 // ─── Frame Capture ────────────────────────────────────────────
 
-/** Max export resolution — clamp to 4K */
-const MAX_EXPORT_WIDTH = 3840;
-const MAX_EXPORT_HEIGHT = 2160;
+/** Max export dimensions — cap at 1080p for animation (keeps it fast) */
+const MAX_ANIM_WIDTH = 1920;
+const MAX_ANIM_HEIGHT = 1080;
 const MAX_EXPORT_FPS = 60;
 
-/** Compute a pixel ratio that keeps the output within 4K bounds */
+/** Compute a pixel ratio that keeps the output within bounds */
 function computeExportPixelRatio(element: HTMLElement): number {
 	const w = element.offsetWidth;
 	const h = element.offsetHeight;
 	if (w <= 0 || h <= 0) return 1;
-	const scaleW = MAX_EXPORT_WIDTH / w;
-	const scaleH = MAX_EXPORT_HEIGHT / h;
+	const scaleW = MAX_ANIM_WIDTH / w;
+	const scaleH = MAX_ANIM_HEIGHT / h;
 	return Math.min(1, scaleW, scaleH);
 }
 
-/** Load an image element from a src URL */
-function loadImage(src: string): Promise<HTMLImageElement> {
-	return new Promise((resolve, reject) => {
-		const img = new Image();
-		img.onload = () => resolve(img);
-		img.onerror = reject;
-		img.src = src;
-	});
-}
-
-interface ObjectSnapshot {
-	id: string;
-	/** Isolated object image (transparent background) */
-	image: HTMLImageElement;
-	/** Pixel width/height of the isolated image */
-	imgW: number;
-	imgH: number;
-}
-
 /**
- * Fast frame capture via canvas compositing.
+ * Capture animation frames by rendering the live DOM for each frame.
  *
- * Strategy: capture the background and each object ONCE using html-to-image,
- * isolate each object by pixel-diffing against the background, then composite
- * every animation frame on a Canvas2D with pure drawImage + transform calls.
+ * The caller's onFrame callback mutates the reactive store which updates
+ * the DOM with the correct transforms for each time step. We then capture
+ * the fully-rendered DOM via html-to-image.
  *
- * html-to-image is called (1 + N) times total (N = object count),
- * instead of once per frame. For a 2s@30fps animation that's 2 calls vs 60.
+ * Optimizations over naive approach:
+ *  - Capped at 1080p output (pixelRatio scales down large canvases)
+ *  - FPS clamped to 60
+ *  - setTimeout(0) instead of double-RAF for faster yields
+ *  - cacheBust: false to reuse resolved resources across frames
  */
 export async function captureFrames(
 	element: HTMLElement,
@@ -253,197 +237,7 @@ export async function captureFrames(
 	fps: number,
 	onFrame: (time: number) => void,
 	onProgress?: (pct: number) => void,
-	tracks?: AnimationTrack[]
-): Promise<Blob[]> {
-	const clampedFps = Math.min(fps, MAX_EXPORT_FPS);
-	const totalFrames = Math.ceil((duration / 1000) * clampedFps);
-	const frameInterval = duration / totalFrames;
-	const pixelRatio = computeExportPixelRatio(element);
-
-	// Find object wrapper elements
-	const objectEls = element.querySelectorAll<HTMLElement>('[data-object-id]');
-
-	// If no objects or no tracks, use slow path
-	if (objectEls.length === 0 || !tracks || tracks.length === 0) {
-		return captureFramesSlow(element, duration, fps, onFrame, onProgress);
-	}
-
-	// ─── Phase 1: Capture background (all objects hidden) ───
-	onProgress?.(0);
-
-	// Save & hide all objects
-	const savedStyles: Map<HTMLElement, { vis: string }> = new Map();
-	objectEls.forEach((el) => {
-		savedStyles.set(el, { vis: el.style.visibility });
-		el.style.visibility = 'hidden';
-	});
-
-	await new Promise<void>((r) => requestAnimationFrame(() => r()));
-	const bgDataUrl = await toPng(element, { pixelRatio, cacheBust: false });
-	const bgImg = await loadImage(bgDataUrl);
-
-	const canvasW = bgImg.width;
-	const canvasH = bgImg.height;
-
-	// Get background pixel data for diffing
-	const diffCvs = document.createElement('canvas');
-	diffCvs.width = canvasW;
-	diffCvs.height = canvasH;
-	const diffCtx = diffCvs.getContext('2d', { willReadFrequently: true })!;
-	diffCtx.drawImage(bgImg, 0, 0);
-	const bgPixelData = diffCtx.getImageData(0, 0, canvasW, canvasH);
-
-	// ─── Phase 2: Capture each object (show one at a time, diff with bg) ───
-	const snapshots: ObjectSnapshot[] = [];
-
-	for (const el of objectEls) {
-		const objId = el.getAttribute('data-object-id')!;
-
-		// Show only this object, positioned at center with identity transform
-		el.style.visibility = 'visible';
-		const savedTransform = el.style.transform;
-		const savedLeft = el.style.left;
-		const savedTop = el.style.top;
-
-		el.style.left = '50%';
-		el.style.top = '50%';
-		el.style.transform = 'translate(-50%, -50%)';
-
-		await new Promise<void>((r) => requestAnimationFrame(() => r()));
-		const objDataUrl = await toPng(element, { pixelRatio, cacheBust: false });
-		const objFullImg = await loadImage(objDataUrl);
-
-		// Restore
-		el.style.transform = savedTransform;
-		el.style.left = savedLeft;
-		el.style.top = savedTop;
-		el.style.visibility = 'hidden';
-
-		// Diff to isolate the object from the background
-		diffCtx.clearRect(0, 0, canvasW, canvasH);
-		diffCtx.drawImage(objFullImg, 0, 0);
-		const objPixelData = diffCtx.getImageData(0, 0, canvasW, canvasH);
-		const isoData = diffCtx.createImageData(canvasW, canvasH);
-
-		let minX = canvasW, minY = canvasH, maxX = 0, maxY = 0;
-
-		for (let p = 0; p < objPixelData.data.length; p += 4) {
-			const dr = Math.abs(objPixelData.data[p] - bgPixelData.data[p]);
-			const dg = Math.abs(objPixelData.data[p + 1] - bgPixelData.data[p + 1]);
-			const db = Math.abs(objPixelData.data[p + 2] - bgPixelData.data[p + 2]);
-			const diff = dr + dg + db;
-
-			if (diff > 8) {
-				isoData.data[p] = objPixelData.data[p];
-				isoData.data[p + 1] = objPixelData.data[p + 1];
-				isoData.data[p + 2] = objPixelData.data[p + 2];
-				isoData.data[p + 3] = Math.min(255, diff * 4);
-
-				const px = (p / 4) % canvasW;
-				const py = Math.floor((p / 4) / canvasW);
-				if (px < minX) minX = px;
-				if (px > maxX) maxX = px;
-				if (py < minY) minY = py;
-				if (py > maxY) maxY = py;
-			}
-		}
-
-		// Crop to bounding box
-		const cropW = maxX - minX + 1;
-		const cropH = maxY - minY + 1;
-		if (cropW > 0 && cropH > 0) {
-			diffCtx.putImageData(isoData, 0, 0);
-			const croppedData = diffCtx.getImageData(minX, minY, cropW, cropH);
-			const cropCvs = document.createElement('canvas');
-			cropCvs.width = cropW;
-			cropCvs.height = cropH;
-			const cropCtx = cropCvs.getContext('2d')!;
-			cropCtx.putImageData(croppedData, 0, 0);
-			const croppedUrl = cropCvs.toDataURL('image/png');
-			const croppedImg = await loadImage(croppedUrl);
-
-			snapshots.push({ id: objId, image: croppedImg, imgW: cropW, imgH: cropH });
-		}
-	}
-
-	// Restore all objects
-	objectEls.forEach((el) => {
-		const saved = savedStyles.get(el);
-		if (saved) el.style.visibility = saved.vis;
-	});
-
-	onProgress?.(10);
-
-	// ─── Phase 3: Composite each frame ───
-	const compositeCvs = document.createElement('canvas');
-	compositeCvs.width = canvasW;
-	compositeCvs.height = canvasH;
-	const compCtx = compositeCvs.getContext('2d')!;
-
-	const frames: Blob[] = [];
-
-	for (let i = 0; i < totalFrames; i++) {
-		const time = i * frameInterval;
-
-		// Evaluate track values for this time
-		const animValues: Map<string, Map<string, number>> = new Map();
-		for (const track of tracks) {
-			const val = getValueAtTime(track, time);
-			if (val !== undefined) {
-				if (!animValues.has(track.targetId)) animValues.set(track.targetId, new Map());
-				animValues.get(track.targetId)!.set(track.property, val);
-			}
-		}
-
-		// Draw background
-		compCtx.clearRect(0, 0, canvasW, canvasH);
-		compCtx.drawImage(bgImg, 0, 0);
-
-		// Draw each object with animated transforms
-		for (const snap of snapshots) {
-			const vals = animValues.get(snap.id);
-
-			// Get animated properties (fall back to base values if not animated)
-			const animX = vals?.get('x') ?? 50;
-			const animY = vals?.get('y') ?? 50;
-			const animScale = vals?.get('scale') ?? 1;
-			const animRotation = vals?.get('rotation') ?? 0;
-			// tiltX/tiltY aren't easily replicated in 2D canvas, but rotation + scale + position are
-
-			// Object was captured centered at (50%, 50%) = (canvasW/2, canvasH/2).
-			// Animated position is at (animX%, animY%).
-			const posX = (animX / 100) * canvasW;
-			const posY = (animY / 100) * canvasH;
-
-			compCtx.save();
-			compCtx.translate(posX, posY);
-			compCtx.rotate((animRotation * Math.PI) / 180);
-			compCtx.scale(animScale, animScale);
-			// Draw centered
-			compCtx.drawImage(snap.image, -snap.imgW / 2, -snap.imgH / 2);
-			compCtx.restore();
-		}
-
-		const blob = await new Promise<Blob | null>((resolve) =>
-			compositeCvs.toBlob((b) => resolve(b), 'image/png')
-		);
-		if (blob) frames.push(blob);
-		onProgress?.(10 + ((i + 1) / totalFrames) * 90);
-	}
-
-	return frames;
-}
-
-/**
- * Slow fallback: captures the full DOM via html-to-image for every frame.
- * Used when compositing isn't possible.
- */
-async function captureFramesSlow(
-	element: HTMLElement,
-	duration: number,
-	fps: number,
-	onFrame: (time: number) => void,
-	onProgress?: (pct: number) => void
+	_tracks?: AnimationTrack[] // reserved for future use
 ): Promise<Blob[]> {
 	const clampedFps = Math.min(fps, MAX_EXPORT_FPS);
 	const totalFrames = Math.ceil((duration / 1000) * clampedFps);
@@ -454,6 +248,8 @@ async function captureFramesSlow(
 	for (let i = 0; i < totalFrames; i++) {
 		const time = i * frameInterval;
 		onFrame(time);
+
+		// Yield to let Svelte flush DOM updates
 		await new Promise<void>((r) => setTimeout(r, 0));
 
 		const blob = await toBlob(element, { pixelRatio, cacheBust: false });
