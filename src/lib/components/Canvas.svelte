@@ -234,7 +234,7 @@
 						{@const estW = Math.max(500, tb.fontSize * tb.text.length * 0.7)}
 						{@const estH = Math.max(300, tb.fontSize * 4)}
 						{@const pathD = makeTextPath(tb.pathType, tb.arcDegrees, estW * 0.85)}
-						<svg viewBox="{-estW / 2} {-estH / 2} {estW} {estH}" style="width: 100%; height: {estH}px; overflow: visible; display: block;">
+						<svg viewBox={`${-estW / 2} ${-estH / 2} ${estW} ${estH}`} style="width: 100%; height: {estH}px; overflow: visible; display: block;">
 							<defs>
 								<path id="text-arc-{tb.id}" d={pathD} />
 							</defs>
@@ -271,7 +271,7 @@
 						{@const estW = Math.max(500, to.fontSize * to.text.length * 0.7)}
 						{@const estH = Math.max(300, to.fontSize * 4)}
 						{@const pathD = makeTextPath(to.pathType, to.arcDegrees, estW * 0.85)}
-						<svg viewBox="{-estW / 2} {-estH / 2} {estW} {estH}" style="width: 100%; height: {estH}px; overflow: visible; display: block;">
+						<svg viewBox={`${-estW / 2} ${-estH / 2} ${estW} ${estH}`} style="width: 100%; height: {estH}px; overflow: visible; display: block;">
 							<defs>
 								<path id="text-arc" d={pathD} />
 							</defs>
@@ -341,7 +341,22 @@
 						"
 					onclick={() => store.selectTextBlock(tb.id)}
 				>
-					{tb.text}
+					{#if tb.arcDegrees !== 0}
+						{@const estW = Math.max(500, tb.fontSize * tb.text.length * 0.7)}
+						{@const estH = Math.max(300, tb.fontSize * 4)}
+						{@const pathD = makeTextPath(tb.pathType, tb.arcDegrees, estW * 0.85)}
+						<svg viewBox={`${-estW / 2} ${-estH / 2} ${estW} ${estH}`} style="width: 100%; height: {estH}px; overflow: visible; display: block;">
+							<defs>
+								<path id="text-arc-below-{tb.id}" d={pathD} />
+							</defs>
+							<text fill={tb.color} font-size={tb.fontSize} font-weight={tb.fontWeight} font-family="'{tb.fontFamily}', sans-serif" letter-spacing={tb.letterSpacing} text-anchor="middle"
+								style={tb.shadow.enabled ? `filter: drop-shadow(${tb.shadow.offsetX}px ${tb.shadow.offsetY}px ${tb.shadow.blur}px ${tb.shadow.color})` : ''}>
+								<textPath href="#text-arc-below-{tb.id}" startOffset="50%">{tb.text}</textPath>
+							</text>
+						</svg>
+					{:else}
+						{tb.text}
+					{/if}
 				</div>
 			{/each}
 
@@ -368,7 +383,7 @@
 						{@const svgW = Math.max(400, tb.fontSize * tb.text.length * 0.7)}
 						{@const svgH = Math.max(250, tb.fontSize * 4)}
 						{@const pathD = makeTextPath(tb.pathType, tb.arcDegrees, svgW * 0.85)}
-						<svg style="overflow: visible; width: {svgW}px; height: {svgH}px; display: block;" viewBox="{-svgW / 2} {-svgH / 2} {svgW} {svgH}">
+						<svg style="overflow: visible; width: {svgW}px; height: {svgH}px; display: block;" viewBox={`${-svgW / 2} ${-svgH / 2} ${svgW} ${svgH}`}>
 							<defs>
 								<path id="text-path-{tb.id}" d={pathD} />
 							</defs>
@@ -400,7 +415,22 @@
 						transform: perspective(1200px) rotateX({to.tiltX}deg) rotateY({to.tiltY}deg) rotate({to.rotation}deg);
 						{to.shadow.enabled ? `text-shadow: ${to.shadow.offsetX}px ${to.shadow.offsetY}px ${to.shadow.blur}px ${to.shadow.color};` : ''}"
 				>
-					{to.text}
+					{#if to.arcDegrees !== 0}
+						{@const estW = Math.max(500, to.fontSize * to.text.length * 0.7)}
+						{@const estH = Math.max(300, to.fontSize * 4)}
+						{@const pathD = makeTextPath(to.pathType, to.arcDegrees, estW * 0.85)}
+						<svg viewBox={`${-estW / 2} ${-estH / 2} ${estW} ${estH}`} style="width: 100%; height: {estH}px; overflow: visible; display: block;">
+							<defs>
+								<path id="text-arc-below-legacy" d={pathD} />
+							</defs>
+							<text fill={to.color} font-size={to.fontSize} font-weight={to.fontWeight} font-family="'{to.fontFamily}', sans-serif" letter-spacing={to.letterSpacing} text-anchor="middle"
+								style={to.shadow.enabled ? `filter: drop-shadow(${to.shadow.offsetX}px ${to.shadow.offsetY}px ${to.shadow.blur}px ${to.shadow.color})` : ''}>
+								<textPath href="#text-arc-below-legacy" startOffset="50%">{to.text}</textPath>
+							</text>
+						</svg>
+					{:else}
+						{to.text}
+					{/if}
 				</div>
 			{/if}
 
@@ -424,7 +454,7 @@
 						{@const svgW = Math.max(400, to.fontSize * to.text.length * 0.7)}
 						{@const svgH = Math.max(250, to.fontSize * 4)}
 						{@const pathD = makeTextPath(to.pathType, to.arcDegrees, svgW * 0.85)}
-						<svg style="overflow: visible; width: {svgW}px; height: {svgH}px; display: block;" viewBox="{-svgW / 2} {-svgH / 2} {svgW} {svgH}">
+						<svg style="overflow: visible; width: {svgW}px; height: {svgH}px; display: block;" viewBox={`${-svgW / 2} ${-svgH / 2} ${svgW} ${svgH}`}>
 							<defs>
 								<path id="text-path-custom" d={pathD} />
 							</defs>
