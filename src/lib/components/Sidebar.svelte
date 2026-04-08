@@ -93,6 +93,7 @@
 	let animVideoFormat = $state<VideoFormat>('mp4');
 	let animResolution = $state<AnimResolution>('1080p');
 	let animExportStatus = $state('');
+	let animExportCancelled = $state(false);
 	let animPreviewTimer = $state<ReturnType<typeof setInterval> | null>(null);
 	let animPreviewTime = $state(0);
 
@@ -124,12 +125,17 @@
 		animPreviewing = false;
 	}
 
+	function cancelAnimExport() {
+		animExportCancelled = true;
+	}
+
 	async function exportAnimation() {
 		if (!canvasRef || animExporting) return;
 		const preset = animationPresets.find((p) => p.id === store.animation.presetId);
 		if (!preset) return;
 
 		animExporting = true;
+		animExportCancelled = false;
 		animExportProgress = 0;
 		animExportStatus = 'Capturing frames...';
 
@@ -152,8 +158,15 @@
 			},
 			(pct) => { animExportProgress = pct * 0.5; }, // first 50% is frame capture
 			tracks,
-			animResolution
+			animResolution,
+			() => animExportCancelled
 		);
+
+		if (animExportCancelled) {
+			animExporting = false;
+			animExportStatus = '';
+			return;
+		}
 
 		try {
 			animExportStatus = 'Loading FFmpeg...';
@@ -1227,6 +1240,36 @@
 		{/if}
 	</div>
 </aside>
+
+<!-- Animation export overlay — covers the entire viewport to hide canvas resizing -->
+{#if animExporting}
+	<div class="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/80 backdrop-blur-md">
+		<div class="flex flex-col items-center gap-6 rounded-2xl bg-zinc-900/90 border border-zinc-700/50 px-12 py-10 shadow-2xl">
+			<!-- Spinner -->
+			<div class="h-12 w-12 rounded-full border-4 border-zinc-700 border-t-pink-500 animate-spin"></div>
+
+			<!-- Status -->
+			<div class="text-center space-y-2">
+				<h3 class="text-lg font-semibold text-white">Rendering Video</h3>
+				<p class="text-sm text-zinc-400">{animExportStatus || 'Preparing...'}</p>
+			</div>
+
+			<!-- Progress bar -->
+			<div class="w-64 h-2 rounded-full bg-zinc-800 overflow-hidden">
+				<div class="h-full rounded-full bg-gradient-to-r from-pink-500 to-violet-500 transition-all duration-300"
+					style="width: {Math.round(animExportProgress)}%"></div>
+			</div>
+			<span class="text-xs text-zinc-500">{Math.round(animExportProgress)}%</span>
+
+			<!-- Cancel -->
+			<button
+				class="rounded-lg border border-zinc-700 px-6 py-2 text-sm font-medium text-zinc-400 transition-colors hover:border-red-500/50 hover:text-red-400"
+				onclick={cancelAnimExport}>
+				Cancel
+			</button>
+		</div>
+	</div>
+{/if}
 
 <style>
 	:global(.section-header) {

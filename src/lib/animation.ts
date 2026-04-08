@@ -326,7 +326,8 @@ export async function captureFrames(
 	onFrame: (time: number) => void,
 	onProgress?: (pct: number) => void,
 	_tracks?: AnimationTrack[],
-	resolution: AnimResolution = '1080p'
+	resolution: AnimResolution = '1080p',
+	isCancelled?: () => boolean
 ): Promise<Blob[]> {
 	const clampedFps = Math.min(fps, MAX_EXPORT_FPS);
 	const totalFrames = Math.ceil((duration / 1000) * clampedFps);
@@ -346,6 +347,8 @@ export async function captureFrames(
 
 	try {
 		for (let i = 0; i < totalFrames; i++) {
+			if (isCancelled?.()) break;
+
 			const time = i * frameInterval;
 			onFrame(time);
 

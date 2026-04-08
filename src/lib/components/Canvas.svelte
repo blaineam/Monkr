@@ -227,14 +227,14 @@
 						{tb.maxWidth > 0 ? `max-width: ${tb.maxWidth}%; margin: 0 auto; word-wrap: break-word; overflow-wrap: break-word; white-space: normal;` : ''}
 						transform: perspective(1200px) rotateX({tb.tiltX}deg) rotateY({tb.tiltY}deg) rotate({tb.rotation}deg);
 						{tb.shadow.enabled ? `text-shadow: ${tb.shadow.offsetX}px ${tb.shadow.offsetY}px ${tb.shadow.blur}px ${tb.shadow.color};` : ''}
-						{isSelText ? 'outline: 2px dashed rgba(236,72,153,0.4); outline-offset: 4px;' : ''}"
+						"
 					onclick={() => store.selectTextBlock(tb.id)}
 				>
 					{#if tb.arcDegrees !== 0}
 						{@const estW = Math.max(500, tb.fontSize * tb.text.length * 0.7)}
 						{@const estH = Math.max(300, tb.fontSize * 4)}
 						{@const pathD = makeTextPath(tb.pathType, tb.arcDegrees, estW * 0.85)}
-						<svg viewBox="-{estW / 2} -{estH / 2} {estW} {estH}" style="width: 100%; height: {estH}px; overflow: visible; display: block;">
+						<svg viewBox="{-estW / 2} {-estH / 2} {estW} {estH}" style="width: 100%; height: {estH}px; overflow: visible; display: block;">
 							<defs>
 								<path id="text-arc-{tb.id}" d={pathD} />
 							</defs>
@@ -271,7 +271,7 @@
 						{@const estW = Math.max(500, to.fontSize * to.text.length * 0.7)}
 						{@const estH = Math.max(300, to.fontSize * 4)}
 						{@const pathD = makeTextPath(to.pathType, to.arcDegrees, estW * 0.85)}
-						<svg viewBox="-{estW / 2} -{estH / 2} {estW} {estH}" style="width: 100%; height: {estH}px; overflow: visible; display: block;">
+						<svg viewBox="{-estW / 2} {-estH / 2} {estW} {estH}" style="width: 100%; height: {estH}px; overflow: visible; display: block;">
 							<defs>
 								<path id="text-arc" d={pathD} />
 							</defs>
@@ -308,9 +308,6 @@
 							transform: translate(-50%, -50%) scale({maxScale * obj.scale}) rotate({obj.rotation ?? 0}deg);"
 						onmousedown={(e) => startDrag(e, obj.id)}
 					>
-						{#if isSelected}
-							<div class="pointer-events-none absolute -inset-3 rounded-xl border-2 border-pink-500/40"></div>
-						{/if}
 						<DeviceFrame
 							{device}
 							screenshotUrl={obj.screenshotUrl}
@@ -341,7 +338,7 @@
 						{tb.maxWidth > 0 ? `max-width: ${tb.maxWidth}%; margin: 0 auto; word-wrap: break-word; overflow-wrap: break-word; white-space: normal;` : ''}
 						transform: perspective(1200px) rotateX({tb.tiltX}deg) rotateY({tb.tiltY}deg) rotate({tb.rotation}deg);
 						{tb.shadow.enabled ? `text-shadow: ${tb.shadow.offsetX}px ${tb.shadow.offsetY}px ${tb.shadow.blur}px ${tb.shadow.color};` : ''}
-						{isSelText ? 'outline: 2px dashed rgba(236,72,153,0.4); outline-offset: 4px;' : ''}"
+						"
 					onclick={() => store.selectTextBlock(tb.id)}
 				>
 					{tb.text}
@@ -364,14 +361,14 @@
 						line-height: {tb.lineHeight};
 						{tb.maxWidth > 0 ? `max-width: ${tb.maxWidth}%; word-wrap: break-word; overflow-wrap: break-word; white-space: normal;` : 'white-space: nowrap;'}
 						{tb.shadow.enabled ? `text-shadow: ${tb.shadow.offsetX}px ${tb.shadow.offsetY}px ${tb.shadow.blur}px ${tb.shadow.color};` : ''}
-						{isSelText ? 'outline: 2px dashed rgba(236,72,153,0.4); outline-offset: 4px;' : ''}"
+						"
 					onclick={() => store.selectTextBlock(tb.id)}
 				>
 					{#if tb.arcDegrees !== 0}
 						{@const svgW = Math.max(400, tb.fontSize * tb.text.length * 0.7)}
 						{@const svgH = Math.max(250, tb.fontSize * 4)}
 						{@const pathD = makeTextPath(tb.pathType, tb.arcDegrees, svgW * 0.85)}
-						<svg style="overflow: visible; width: {svgW}px; height: {svgH}px; display: block;" viewBox="-{svgW / 2} -{svgH / 2} {svgW} {svgH}">
+						<svg style="overflow: visible; width: {svgW}px; height: {svgH}px; display: block;" viewBox="{-svgW / 2} {-svgH / 2} {svgW} {svgH}">
 							<defs>
 								<path id="text-path-{tb.id}" d={pathD} />
 							</defs>
@@ -427,7 +424,7 @@
 						{@const svgW = Math.max(400, to.fontSize * to.text.length * 0.7)}
 						{@const svgH = Math.max(250, to.fontSize * 4)}
 						{@const pathD = makeTextPath(to.pathType, to.arcDegrees, svgW * 0.85)}
-						<svg style="overflow: visible; width: {svgW}px; height: {svgH}px; display: block;" viewBox="-{svgW / 2} -{svgH / 2} {svgW} {svgH}">
+						<svg style="overflow: visible; width: {svgW}px; height: {svgH}px; display: block;" viewBox="{-svgW / 2} {-svgH / 2} {svgW} {svgH}">
 							<defs>
 								<path id="text-path-custom" d={pathD} />
 							</defs>
