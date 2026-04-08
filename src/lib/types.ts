@@ -79,6 +79,39 @@ export interface CanvasSize {
 	presetName: string;
 }
 
+export interface TextBlock {
+	id: string;
+	text: string;
+	fontSize: number;
+	color: string;
+	position: 'above' | 'below' | 'custom';
+	fontWeight: number;
+	fontFamily: string;
+	textAlign: 'left' | 'center' | 'right';
+	letterSpacing: number;
+	lineHeight: number;
+	/** Custom position as percentage (0-100) */
+	x: number;
+	y: number;
+	tiltX: number;
+	tiltY: number;
+	rotation: number;
+	shadow: {
+		enabled: boolean;
+		color: string;
+		blur: number;
+		offsetX: number;
+		offsetY: number;
+	};
+	/** Arc text: 0 = straight, positive = curve up, negative = curve down, in degrees */
+	arcDegrees: number;
+	/** Text path shape: 'arc' for circular arc, 'wave' for S-curve wave */
+	pathType: 'arc' | 'wave';
+	/** Max width as percentage of canvas width (0 = no limit) */
+	maxWidth: number;
+}
+
+/** @deprecated Use textBlocks array instead */
 export interface TextOverlay {
 	enabled: boolean;
 	text: string;
@@ -115,6 +148,8 @@ export interface SceneObject {
 	deviceColorId: string;
 	screenshotUrl: string | null;
 	screenshotFile: File | null;
+	/** Additional screenshots for batch export variations */
+	extraScreenshots: Array<{ url: string; file: File | null }>;
 	/** X position as percentage of canvas width (0-100) */
 	x: number;
 	/** Y position as percentage of canvas height (0-100) */
@@ -144,6 +179,10 @@ export interface MonkrState {
 	canvasSize: CanvasSize;
 	padding: number;
 	textOverlay: TextOverlay;
+	/** Multiple text blocks */
+	textBlocks: TextBlock[];
+	/** Currently selected text block ID */
+	selectedTextId: string | null;
 	/** Active perspective mockup scene ID (null = normal mode) */
 	activeMockupId: string | null;
 	/** Blob URL for the mockup scene photo */

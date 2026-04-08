@@ -185,10 +185,10 @@ export const scenePresets: ScenePreset[] = [
 		description: 'Full Apple ecosystem on radiant bg',
 		backgroundImageUrl: bg('radiant', '8.jpg'),
 		devices: [
-			{ deviceId: 'imac-24', colorId: 'blue', x: 50, y: 32, scale: 0.48, rotation: 0, tiltX: 0, tiltY: 0 },
-			{ deviceId: 'macbook-pro-16', colorId: 'silver', x: 22, y: 62, scale: 0.42, rotation: -3, tiltX: -3, tiltY: 8 },
-			{ deviceId: 'ipad-pro-11', colorId: 'silver', x: 68, y: 60, scale: 0.32, rotation: 3, tiltX: -3, tiltY: -6 },
-			{ deviceId: 'iphone-16-pro', colorId: 'natural-titanium', x: 90, y: 66, scale: 0.2, rotation: 5, tiltX: 0, tiltY: -8 }
+			{ deviceId: 'imac-24', colorId: 'blue', x: 50, y: 30, scale: 0.55, rotation: 0, tiltX: 0, tiltY: 0 },
+			{ deviceId: 'macbook-pro-16', colorId: 'silver', x: 22, y: 65, scale: 0.5, rotation: -3, tiltX: -3, tiltY: 8 },
+			{ deviceId: 'ipad-pro-11', colorId: 'silver', x: 68, y: 62, scale: 0.38, rotation: 3, tiltX: -3, tiltY: -6 },
+			{ deviceId: 'iphone-16-pro', colorId: 'natural-titanium', x: 90, y: 68, scale: 0.25, rotation: 5, tiltX: 0, tiltY: -8 }
 		],
 		canvasWidth: 1920,
 		canvasHeight: 1080
@@ -209,12 +209,17 @@ export const scenePresets: ScenePreset[] = [
 		},
 		devices: [
 			// Slide 1: centered hero phone
-			{ deviceId: 'iphone-16-pro-max', colorId: 'natural-titanium', x: 16.7, y: 55, scale: 0.65, rotation: 0, tiltX: 0, tiltY: 0 },
+			{ deviceId: 'iphone-16-pro-max', colorId: 'natural-titanium', x: 16.7, y: 58, scale: 1.2, rotation: 0, tiltX: 0, tiltY: 0 },
 			// Slide 2: two phones side by side
-			{ deviceId: 'iphone-16-pro-max', colorId: 'natural-titanium', x: 43, y: 55, scale: 0.45, rotation: -5, tiltX: 0, tiltY: 8 },
-			{ deviceId: 'iphone-16-pro-max', colorId: 'black-titanium', x: 57, y: 55, scale: 0.45, rotation: 5, tiltX: 0, tiltY: -8 },
+			{ deviceId: 'iphone-16-pro-max', colorId: 'natural-titanium', x: 42, y: 58, scale: 0.85, rotation: -5, tiltX: 0, tiltY: 8 },
+			{ deviceId: 'iphone-16-pro-max', colorId: 'black-titanium', x: 58, y: 58, scale: 0.85, rotation: 5, tiltX: 0, tiltY: -8 },
 			// Slide 3: tilted showcase
-			{ deviceId: 'iphone-16-pro-max', colorId: 'natural-titanium', x: 83.3, y: 55, scale: 0.6, rotation: -8, tiltX: -5, tiltY: 12 }
+			{ deviceId: 'iphone-16-pro-max', colorId: 'natural-titanium', x: 83.3, y: 58, scale: 1.1, rotation: -8, tiltX: -5, tiltY: 12 }
+		],
+		textBlocks: [
+			{ text: 'Your App Name', x: 16.7, y: 12, fontSize: 64, color: '#ffffff', fontWeight: 700 },
+			{ text: 'Feature One', x: 50, y: 12, fontSize: 64, color: '#ffffff', fontWeight: 700 },
+			{ text: 'Feature Two', x: 83.3, y: 12, fontSize: 64, color: '#ffffff', fontWeight: 700 }
 		],
 		canvasWidth: 3870, // 1290 * 3
 		canvasHeight: 2796
@@ -233,12 +238,17 @@ export const scenePresets: ScenePreset[] = [
 		},
 		devices: [
 			// Slide 1: centered iPad
-			{ deviceId: 'ipad-pro-13', colorId: 'silver', x: 16.7, y: 52, scale: 0.55, rotation: 0, tiltX: 0, tiltY: 0 },
+			{ deviceId: 'ipad-pro-13', colorId: 'silver', x: 16.7, y: 55, scale: 1.0, rotation: 0, tiltX: 0, tiltY: 0 },
 			// Slide 2: iPad + iPhone
-			{ deviceId: 'ipad-pro-13', colorId: 'silver', x: 45, y: 48, scale: 0.45, rotation: -3, tiltX: 0, tiltY: 6 },
-			{ deviceId: 'iphone-16-pro', colorId: 'natural-titanium', x: 58, y: 62, scale: 0.2, rotation: 5, tiltX: 0, tiltY: -8 },
+			{ deviceId: 'ipad-pro-13', colorId: 'silver', x: 45, y: 52, scale: 0.8, rotation: -3, tiltX: 0, tiltY: 6 },
+			{ deviceId: 'iphone-16-pro', colorId: 'natural-titanium', x: 60, y: 65, scale: 0.4, rotation: 5, tiltX: 0, tiltY: -8 },
 			// Slide 3: landscape iPad
-			{ deviceId: 'ipad-pro-13', colorId: 'silver', x: 83.3, y: 50, scale: 0.5, rotation: 0, tiltX: -4, tiltY: 10 }
+			{ deviceId: 'ipad-pro-13', colorId: 'silver', x: 83.3, y: 52, scale: 0.9, rotation: 0, tiltX: -4, tiltY: 10 }
+		],
+		textBlocks: [
+			{ text: 'Your App Name', x: 16.7, y: 10, fontSize: 80, color: '#ffffff', fontWeight: 700 },
+			{ text: 'Feature One', x: 50, y: 10, fontSize: 80, color: '#ffffff', fontWeight: 700 },
+			{ text: 'Feature Two', x: 83.3, y: 10, fontSize: 80, color: '#ffffff', fontWeight: 700 }
 		],
 		canvasWidth: 6144, // 2048 * 3
 		canvasHeight: 2732

@@ -4,7 +4,8 @@ import type { ExportFormat, ExportScale } from './types';
 export async function exportCanvas(
 	element: HTMLElement,
 	format: ExportFormat,
-	scale: ExportScale
+	scale: ExportScale,
+	filePrefix?: string
 ): Promise<void> {
 	const options = {
 		pixelRatio: scale,
@@ -21,7 +22,7 @@ export async function exportCanvas(
 	}
 
 	const link = document.createElement('a');
-	link.download = `monkr-mockup-${Date.now()}.${format}`;
+	link.download = `monkr-${filePrefix ?? 'mockup'}-${Date.now()}.${format}`;
 	link.href = dataUrl;
 	link.click();
 }
@@ -33,7 +34,8 @@ export async function exportCanvasSections(
 	sectionWidth: number,
 	sectionHeight: number,
 	format: ExportFormat,
-	scale: ExportScale
+	scale: ExportScale,
+	filePrefix?: string
 ): Promise<void> {
 	// First capture the full canvas at the desired scale
 	const options = {
@@ -77,7 +79,7 @@ export async function exportCanvasSections(
 		}
 
 		const link = document.createElement('a');
-		link.download = `monkr-slide-${i + 1}-${Date.now()}.${format}`;
+		link.download = `monkr-${filePrefix ? filePrefix + '-' : ''}slide-${i + 1}-${Date.now()}.${format}`;
 		link.href = dataUrl;
 		link.click();
 		if (i < numSections - 1) await new Promise((r) => setTimeout(r, 300));

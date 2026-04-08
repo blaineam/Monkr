@@ -43,7 +43,7 @@
 	import { mockupScenes } from '../mockups';
 	import { fontFamilies, loadFont, preloadFonts } from '../fonts';
 	import { animationPresets, getValueAtTime, scaleTracksToduration, captureFrames, exportAsVideo } from '../animation';
-	import type { AnimationTrack, VideoFormat } from '../animation';
+	import type { AnimationTrack, VideoFormat, AnimResolution } from '../animation';
 	import { onMount } from 'svelte';
 	import type { ExportFormat, ExportScale, FrameStyle } from '../types';
 
@@ -91,6 +91,7 @@
 	let animExporting = $state(false);
 	let animExportProgress = $state(0);
 	let animVideoFormat = $state<VideoFormat>('mp4');
+	let animResolution = $state<AnimResolution>('1080p');
 	let animExportStatus = $state('');
 	let animPreviewTimer = $state<ReturnType<typeof setInterval> | null>(null);
 	let animPreviewTime = $state(0);
@@ -142,7 +143,6 @@
 			duration,
 			fps,
 			(time) => {
-				// Fallback path: mutate DOM for slow per-frame capture
 				for (const track of tracks) {
 					const val = getValueAtTime(track, time);
 					if (val !== undefined) {
@@ -151,18 +151,19 @@
 				}
 			},
 			(pct) => { animExportProgress = pct * 0.5; }, // first 50% is frame capture
-			tracks // pass tracks for fast compositing path
+			tracks,
+			animResolution
 		);
 
 		try {
 			animExportStatus = 'Loading FFmpeg...';
 			animExportProgress = 50;
 
-			// Compute output dimensions (capped to 4K)
-			const maxW = 3840, maxH = 2160;
+			// Compute output dimensions (capped to selected resolution)
+			const resCap = animResolution === '4k' ? { w: 3840, h: 2160 } : { w: 1920, h: 1080 };
 			const rawW = canvasRef.offsetWidth;
 			const rawH = canvasRef.offsetHeight;
-			const capScale = Math.min(1, maxW / rawW, maxH / rawH);
+			const capScale = Math.min(1, resCap.w / rawW, resCap.h / rawH);
 			const outW = Math.round(rawW * capScale);
 			const outH = Math.round(rawH * capScale);
 
@@ -407,7 +408,38 @@
 							index={0}
 							onupload={(file) => store.setObjectScreenshot(selectedObj!.id, file)}
 							onremove={() => store.removeObjectScreenshot(selectedObj!.id)}
+							onuploadmultiple={(files) => store.addObjectExtraScreenshots(selectedObj!.id, files)}
 						/>
+
+						<!-- Extra screenshots for batch export -->
+						{#if selectedObj.extraScreenshots.length > 0}
+							<div class="space-y-1">
+								<div class="flex items-center justify-between">
+									<span class="text-[10px] font-medium text-zinc-500">Batch Screenshots ({selectedObj.extraScreenshots.length + 1})</span>
+									<button class="text-[9px] text-zinc-600 hover:text-red-400"
+										onclick={() => store.clearObjectExtraScreenshots(selectedObj!.id)}>
+										Clear All
+									</button>
+								</div>
+								<div class="flex flex-wrap gap-1">
+									{#if selectedObj.screenshotUrl}
+										<div class="relative h-10 w-10 rounded border border-pink-500/40 overflow-hidden">
+											<img src={selectedObj.screenshotUrl} alt="Primary" class="h-full w-full object-cover" />
+											<span class="absolute bottom-0 left-0 right-0 bg-black/60 text-[7px] text-center text-pink-400">1</span>
+										</div>
+									{/if}
+									{#each selectedObj.extraScreenshots as extra, i}
+										<div class="group relative h-10 w-10 rounded border border-zinc-700 overflow-hidden">
+											<img src={extra.url} alt="Extra {i + 2}" class="h-full w-full object-cover" />
+											<span class="absolute bottom-0 left-0 right-0 bg-black/60 text-[7px] text-center text-zinc-400">{i + 2}</span>
+											<button class="absolute -right-0.5 -top-0.5 rounded-full bg-red-600 p-0 text-white opacity-0 group-hover:opacity-100 w-3 h-3 flex items-center justify-center text-[7px]"
+												onclick={() => store.removeObjectExtraScreenshot(selectedObj!.id, i)}>x</button>
+										</div>
+									{/each}
+								</div>
+								<div class="text-[8px] text-zinc-600">Drop multiple images or use Export All to render each variation.</div>
+							</div>
+						{/if}
 
 						<!-- Device picker -->
 						<div class="space-y-2">
@@ -600,7 +632,10 @@
 								{ name: 'iPhone 6.7"', w: 1290, h: 2796 },
 								{ name: 'iPhone 6.1"', w: 1179, h: 2556 },
 								{ name: 'iPad 12.9"', w: 2048, h: 2732 },
-								{ name: 'iPad 11"', w: 1668, h: 2388 }
+								{ name: 'iPad 11"', w: 1668, h: 2388 },
+								{ name: 'Mac', w: 1280, h: 800 },
+								{ name: 'Apple TV', w: 1920, h: 1080 },
+								{ name: 'Apple Watch', w: 410, h: 502 }
 							] as preset}
 								<button class="rounded-md py-1 text-[9px] font-medium transition-colors
 									{store.appStore.presetName === preset.name ? 'bg-zinc-700 text-white' : 'text-zinc-500'}"
@@ -828,37 +863,54 @@
 			</div>
 		{/if}
 
-		<!-- ═══ TEXT OVERLAY ═════════════════════════════════ -->
+		<!-- ═══ TEXT ═════════════════════════════════════════ -->
 		<button class="section-header" onclick={() => toggleSection('text')}>
-			<span class="flex items-center gap-2"><Type size={14} /> Text</span>
+			<span class="flex items-center gap-2"><Type size={14} /> Text{#if store.textBlocks.length > 0}<span class="text-[9px] text-zinc-500">({store.textBlocks.length})</span>{/if}</span>
 			{#if openSections.has('text')}<ChevronUp size={12} />{:else}<ChevronDown size={12} />{/if}
 		</button>
 		{#if openSections.has('text')}
 			<div class="section-body space-y-3">
-				<div class="flex items-center justify-between">
-					<span class="text-[10px] font-medium text-zinc-500">Show Text</span>
-					<button
-						class="h-4 w-7 rounded-full transition-colors {store.textOverlay.enabled ? 'bg-pink-600' : 'bg-zinc-700'}"
-						onclick={() => store.setTextOverlay({ enabled: !store.textOverlay.enabled })}
-					>
-						<div class="h-3 w-3 rounded-full bg-white transition-transform
-							{store.textOverlay.enabled ? 'translate-x-[14px]' : 'translate-x-0.5'}"></div>
-					</button>
+				<!-- Text block list -->
+				<div class="space-y-1">
+					{#each store.textBlocks as tb (tb.id)}
+						<div class="flex items-center gap-1 rounded-md px-1.5 py-1 text-[10px] cursor-pointer transition-colors
+							{store.selectedTextId === tb.id ? 'bg-zinc-700/80 text-white' : 'text-zinc-400 hover:bg-zinc-800'}"
+							onclick={() => store.selectTextBlock(tb.id)}
+						>
+							<Type size={10} class="shrink-0 text-zinc-500" />
+							<span class="flex-1 truncate">{tb.text || 'Untitled'}</span>
+							<button class="p-0.5 text-zinc-600 hover:text-pink-400" onclick={(e) => { e.stopPropagation(); store.duplicateTextBlock(tb.id); }}>
+								<Copy size={10} />
+							</button>
+							<button class="p-0.5 text-zinc-600 hover:text-red-400" onclick={(e) => { e.stopPropagation(); store.removeTextBlock(tb.id); }}>
+								<Trash2 size={10} />
+							</button>
+						</div>
+					{/each}
 				</div>
-				{#if store.textOverlay.enabled}
-					<input type="text" placeholder="Enter text..." value={store.textOverlay.text}
-						oninput={(e) => store.setTextOverlay({ text: (e.target as HTMLInputElement).value })}
+
+				<!-- Add text button -->
+				<button class="flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-zinc-700 py-1.5 text-[10px] font-medium text-zinc-400 hover:border-pink-600 hover:text-pink-400 transition-colors"
+					onclick={() => store.addTextBlock()}>
+					<Plus size={12} /> Add Text
+				</button>
+
+				<!-- Selected text block settings -->
+				{#if store.selectedTextBlock}
+					{@const tb = store.selectedTextBlock}
+					<input type="text" placeholder="Enter text..." value={tb.text}
+						oninput={(e) => store.updateTextBlock(tb.id, { text: (e.target as HTMLInputElement).value })}
 						class="w-full rounded-md border border-zinc-700 bg-zinc-800 px-2.5 py-1.5 text-xs text-white placeholder:text-zinc-600 focus:border-pink-600 focus:outline-none" />
 
 					<!-- Font family -->
 					<div class="space-y-1">
 						<span class="text-[10px] font-medium text-zinc-500">Font</span>
 						<select
-							value={store.textOverlay.fontFamily}
+							value={tb.fontFamily}
 							onchange={(e) => {
 								const f = (e.target as HTMLSelectElement).value;
 								loadFont(f);
-								store.setTextOverlay({ fontFamily: f });
+								store.updateTextBlock(tb.id, { fontFamily: f });
 							}}
 							class="w-full rounded-md border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-[11px] text-white focus:border-pink-600 focus:outline-none"
 						>
@@ -867,25 +919,25 @@
 							{/each}
 						</select>
 						<div class="rounded-md bg-zinc-800/60 px-3 py-2 text-center"
-							style="font-family: '{store.textOverlay.fontFamily}', sans-serif; font-size: 14px; color: white;">
-							{store.textOverlay.text || 'Preview Text'}
+							style="font-family: '{tb.fontFamily}', sans-serif; font-size: 14px; font-weight: {tb.fontWeight}; color: {tb.color};">
+							{tb.text || 'Preview Text'}
 						</div>
 					</div>
 
 					<!-- Position mode -->
 					<div class="grid grid-cols-3 gap-0.5 rounded-lg bg-zinc-800/80 p-0.5">
-						<button class="rounded-md py-1 text-[10px] font-medium {store.textOverlay.position === 'above' ? 'bg-zinc-700 text-white' : 'text-zinc-500'}"
-							onclick={() => store.setTextOverlay({ position: 'above' })}>Above</button>
-						<button class="rounded-md py-1 text-[10px] font-medium {store.textOverlay.position === 'below' ? 'bg-zinc-700 text-white' : 'text-zinc-500'}"
-							onclick={() => store.setTextOverlay({ position: 'below' })}>Below</button>
-						<button class="rounded-md py-1 text-[10px] font-medium {store.textOverlay.position === 'custom' ? 'bg-zinc-700 text-white' : 'text-zinc-500'}"
-							onclick={() => store.setTextOverlay({ position: 'custom' })}>Custom</button>
+						<button class="rounded-md py-1 text-[10px] font-medium {tb.position === 'above' ? 'bg-zinc-700 text-white' : 'text-zinc-500'}"
+							onclick={() => store.updateTextBlock(tb.id, { position: 'above' })}>Above</button>
+						<button class="rounded-md py-1 text-[10px] font-medium {tb.position === 'below' ? 'bg-zinc-700 text-white' : 'text-zinc-500'}"
+							onclick={() => store.updateTextBlock(tb.id, { position: 'below' })}>Below</button>
+						<button class="rounded-md py-1 text-[10px] font-medium {tb.position === 'custom' ? 'bg-zinc-700 text-white' : 'text-zinc-500'}"
+							onclick={() => store.updateTextBlock(tb.id, { position: 'custom' })}>Custom</button>
 					</div>
 
 					<!-- Custom position pad -->
-					{#if store.textOverlay.position === 'custom'}
-						<PositionPad x={store.textOverlay.x} y={store.textOverlay.y}
-							onchange={(x, y) => store.setTextOverlay({ x, y })} />
+					{#if tb.position === 'custom'}
+						<PositionPad x={tb.x} y={tb.y}
+							onchange={(x, y) => store.updateTextBlock(tb.id, { x, y })} />
 					{/if}
 
 					<!-- Alignment -->
@@ -894,44 +946,46 @@
 						<div class="grid grid-cols-3 gap-0.5 rounded-lg bg-zinc-800/80 p-0.5">
 							{#each ['left', 'center', 'right'] as align}
 								<button class="rounded-md py-1 text-[10px] font-medium capitalize
-									{store.textOverlay.textAlign === align ? 'bg-zinc-700 text-white' : 'text-zinc-500'}"
-									onclick={() => store.setTextOverlay({ textAlign: align as 'left' | 'center' | 'right' })}
+									{tb.textAlign === align ? 'bg-zinc-700 text-white' : 'text-zinc-500'}"
+									onclick={() => store.updateTextBlock(tb.id, { textAlign: align as 'left' | 'center' | 'right' })}
 								>{align}</button>
 							{/each}
 						</div>
 					</div>
 
-					<Slider label="Font Size" value={store.textOverlay.fontSize} min={16} max={120} step={2} unit="px"
-						onchange={(v) => store.setTextOverlay({ fontSize: v })} />
-					<Slider label="Weight" value={store.textOverlay.fontWeight} min={300} max={900} step={100} unit=""
-						onchange={(v) => store.setTextOverlay({ fontWeight: v })} />
-					<Slider label="Letter Spacing" value={store.textOverlay.letterSpacing} min={-3} max={10} step={0.5} unit="px"
-						onchange={(v) => store.setTextOverlay({ letterSpacing: v })} />
-					<Slider label="Line Height" value={store.textOverlay.lineHeight} min={0.8} max={2} step={0.1} unit=""
-						onchange={(v) => store.setTextOverlay({ lineHeight: v })} />
-					<ColorPicker label="Color" value={store.textOverlay.color}
-						onchange={(v) => store.setTextOverlay({ color: v })} />
+					<Slider label="Font Size" value={tb.fontSize} min={12} max={200} step={2} unit="px"
+						onchange={(v) => store.updateTextBlock(tb.id, { fontSize: v })} />
+					<Slider label="Weight" value={tb.fontWeight} min={100} max={900} step={100} unit=""
+						onchange={(v) => store.updateTextBlock(tb.id, { fontWeight: v })} />
+					<Slider label="Letter Spacing" value={tb.letterSpacing} min={-3} max={10} step={0.5} unit="px"
+						onchange={(v) => store.updateTextBlock(tb.id, { letterSpacing: v })} />
+					<Slider label="Line Height" value={tb.lineHeight} min={0.8} max={3} step={0.1} unit=""
+						onchange={(v) => store.updateTextBlock(tb.id, { lineHeight: v })} />
+					<Slider label="Max Width" value={tb.maxWidth} min={0} max={100} step={5} unit="%"
+						onchange={(v) => store.updateTextBlock(tb.id, { maxWidth: v })} />
+					<ColorPicker label="Color" value={tb.color}
+						onchange={(v) => store.updateTextBlock(tb.id, { color: v })} />
 
 					<!-- Rotation -->
-					<Slider label="Rotation" value={store.textOverlay.rotation} min={-180} max={180} step={1} unit="°"
-						onchange={(v) => store.setTextOverlay({ rotation: v })} />
+					<Slider label="Rotation" value={tb.rotation} min={-180} max={180} step={1} unit="°"
+						onchange={(v) => store.updateTextBlock(tb.id, { rotation: v })} />
 
 					<!-- 3D Tilt -->
-					<TiltPad tiltX={store.textOverlay.tiltX} tiltY={store.textOverlay.tiltY}
-						onchange={(tx, ty) => store.setTextOverlay({ tiltX: tx, tiltY: ty })} />
+					<TiltPad tiltX={tb.tiltX} tiltY={tb.tiltY}
+						onchange={(tx, ty) => store.updateTextBlock(tb.id, { tiltX: tx, tiltY: ty })} />
 
 					<!-- Text Path -->
 					<div class="flex items-center gap-2">
-						<Slider label="Path" value={store.textOverlay.arcDegrees} min={-30} max={30} step={1} unit="°"
-							onchange={(v) => store.setTextOverlay({ arcDegrees: v })} />
+						<Slider label="Path" value={tb.arcDegrees} min={-30} max={30} step={1} unit="°"
+							onchange={(v) => store.updateTextBlock(tb.id, { arcDegrees: v })} />
 					</div>
 					<div class="flex gap-1">
 						<button class="flex-1 rounded-md px-2 py-1 text-[10px] font-medium
-							{store.textOverlay.pathType === 'arc' ? 'bg-pink-600/20 text-pink-400' : 'bg-zinc-800 text-zinc-500 hover:text-zinc-300'}"
-							onclick={() => store.setTextOverlay({ pathType: 'arc' })}>Arc</button>
+							{tb.pathType === 'arc' ? 'bg-pink-600/20 text-pink-400' : 'bg-zinc-800 text-zinc-500 hover:text-zinc-300'}"
+							onclick={() => store.updateTextBlock(tb.id, { pathType: 'arc' })}>Arc</button>
 						<button class="flex-1 rounded-md px-2 py-1 text-[10px] font-medium
-							{store.textOverlay.pathType === 'wave' ? 'bg-pink-600/20 text-pink-400' : 'bg-zinc-800 text-zinc-500 hover:text-zinc-300'}"
-							onclick={() => store.setTextOverlay({ pathType: 'wave' })}>S-Curve</button>
+							{tb.pathType === 'wave' ? 'bg-pink-600/20 text-pink-400' : 'bg-zinc-800 text-zinc-500 hover:text-zinc-300'}"
+							onclick={() => store.updateTextBlock(tb.id, { pathType: 'wave' })}>S-Curve</button>
 					</div>
 
 					<!-- Drop Shadow -->
@@ -939,22 +993,22 @@
 						<div class="flex items-center justify-between">
 							<span class="text-[10px] font-medium text-zinc-500">Drop Shadow</span>
 							<button
-								class="h-4 w-7 rounded-full transition-colors {store.textOverlay.shadow.enabled ? 'bg-pink-600' : 'bg-zinc-700'}"
-								onclick={() => store.setTextOverlay({ shadow: { ...store.textOverlay.shadow, enabled: !store.textOverlay.shadow.enabled } })}
+								class="h-4 w-7 rounded-full transition-colors {tb.shadow.enabled ? 'bg-pink-600' : 'bg-zinc-700'}"
+								onclick={() => store.updateTextBlock(tb.id, { shadow: { ...tb.shadow, enabled: !tb.shadow.enabled } })}
 							>
 								<div class="h-3 w-3 rounded-full bg-white transition-transform
-									{store.textOverlay.shadow.enabled ? 'translate-x-[14px]' : 'translate-x-0.5'}"></div>
+									{tb.shadow.enabled ? 'translate-x-[14px]' : 'translate-x-0.5'}"></div>
 							</button>
 						</div>
-						{#if store.textOverlay.shadow.enabled}
-							<Slider label="Blur" value={store.textOverlay.shadow.blur} min={0} max={40} step={1} unit="px"
-								onchange={(v) => store.setTextOverlay({ shadow: { ...store.textOverlay.shadow, blur: v } })} />
-							<Slider label="Offset X" value={store.textOverlay.shadow.offsetX} min={-20} max={20} step={1} unit="px"
-								onchange={(v) => store.setTextOverlay({ shadow: { ...store.textOverlay.shadow, offsetX: v } })} />
-							<Slider label="Offset Y" value={store.textOverlay.shadow.offsetY} min={-20} max={20} step={1} unit="px"
-								onchange={(v) => store.setTextOverlay({ shadow: { ...store.textOverlay.shadow, offsetY: v } })} />
-							<ColorPicker label="Shadow Color" value={store.textOverlay.shadow.color}
-								onchange={(v) => store.setTextOverlay({ shadow: { ...store.textOverlay.shadow, color: v } })} />
+						{#if tb.shadow.enabled}
+							<Slider label="Blur" value={tb.shadow.blur} min={0} max={40} step={1} unit="px"
+								onchange={(v) => store.updateTextBlock(tb.id, { shadow: { ...tb.shadow, blur: v } })} />
+							<Slider label="Offset X" value={tb.shadow.offsetX} min={-20} max={20} step={1} unit="px"
+								onchange={(v) => store.updateTextBlock(tb.id, { shadow: { ...tb.shadow, offsetX: v } })} />
+							<Slider label="Offset Y" value={tb.shadow.offsetY} min={-20} max={20} step={1} unit="px"
+								onchange={(v) => store.updateTextBlock(tb.id, { shadow: { ...tb.shadow, offsetY: v } })} />
+							<ColorPicker label="Shadow Color" value={tb.shadow.color}
+								onchange={(v) => store.updateTextBlock(tb.id, { shadow: { ...tb.shadow, color: v } })} />
 						{/if}
 					</div>
 				{/if}
@@ -1090,6 +1144,23 @@
 									{fmt}
 								</button>
 							{/each}
+						</div>
+					</div>
+
+					<!-- Resolution -->
+					<div class="space-y-1">
+						<span class="text-[10px] font-medium text-zinc-500">Max Resolution</span>
+						<div class="grid grid-cols-2 gap-0.5 rounded-lg bg-zinc-800/80 p-0.5">
+							<button class="rounded-md py-1 text-[9px] font-medium transition-colors
+								{animResolution === '1080p' ? 'bg-zinc-700 text-white' : 'text-zinc-500'}"
+								onclick={() => animResolution = '1080p'}>
+								1080p
+							</button>
+							<button class="rounded-md py-1 text-[9px] font-medium transition-colors
+								{animResolution === '4k' ? 'bg-zinc-700 text-white' : 'text-zinc-500'}"
+								onclick={() => animResolution = '4k'}>
+								4K
+							</button>
 						</div>
 					</div>
 

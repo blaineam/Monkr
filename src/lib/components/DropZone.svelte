@@ -5,12 +5,14 @@
 		screenshotUrl = null,
 		index = 0,
 		onupload,
-		onremove
+		onremove,
+		onuploadmultiple
 	}: {
 		screenshotUrl: string | null;
 		index?: number;
 		onupload: (file: File) => void;
 		onremove: () => void;
+		onuploadmultiple?: (files: File[]) => void;
 	} = $props();
 
 	let dragging = $state(false);
@@ -19,9 +21,11 @@
 	function handleDrop(e: DragEvent) {
 		e.preventDefault();
 		dragging = false;
-		const file = e.dataTransfer?.files[0];
-		if (file && file.type.startsWith('image/')) {
-			onupload(file);
+		const files = Array.from(e.dataTransfer?.files ?? []).filter((f) => f.type.startsWith('image/'));
+		if (files.length > 1 && onuploadmultiple) {
+			onuploadmultiple(files);
+		} else if (files.length === 1) {
+			onupload(files[0]);
 		}
 	}
 
@@ -36,9 +40,11 @@
 
 	function handleFileSelect(e: Event) {
 		const input = e.target as HTMLInputElement;
-		const file = input.files?.[0];
-		if (file && file.type.startsWith('image/')) {
-			onupload(file);
+		const files = Array.from(input.files ?? []).filter((f) => f.type.startsWith('image/'));
+		if (files.length > 1 && onuploadmultiple) {
+			onuploadmultiple(files);
+		} else if (files.length === 1) {
+			onupload(files[0]);
 		}
 		input.value = '';
 	}
@@ -74,7 +80,7 @@
 		>
 			{#if dragging}
 				<Image size={20} class="text-pink-400" />
-				<span class="text-xs text-pink-400">Drop image</span>
+				<span class="text-xs text-pink-400">Drop image(s)</span>
 			{:else}
 				<Upload size={20} class="text-zinc-500" />
 				<span class="text-xs text-zinc-500">Drop or click</span>
@@ -85,6 +91,7 @@
 		bind:this={fileInput}
 		type="file"
 		accept="image/*"
+		multiple
 		class="hidden"
 		onchange={handleFileSelect}
 	/>

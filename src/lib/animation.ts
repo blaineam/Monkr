@@ -203,18 +203,23 @@ export function createDefaultAnimationConfig(): AnimationConfig {
 
 // ─── Frame Capture ────────────────────────────────────────────
 
-/** Max export dimensions — cap at 1080p for animation (keeps it fast) */
-const MAX_ANIM_WIDTH = 1920;
-const MAX_ANIM_HEIGHT = 1080;
 const MAX_EXPORT_FPS = 60;
 
+export type AnimResolution = '1080p' | '4k';
+
+const RESOLUTION_CAPS: Record<AnimResolution, { w: number; h: number }> = {
+	'1080p': { w: 1920, h: 1080 },
+	'4k': { w: 3840, h: 2160 }
+};
+
 /** Compute a pixel ratio that keeps the output within bounds */
-function computeExportPixelRatio(element: HTMLElement): number {
+function computeExportPixelRatio(element: HTMLElement, resolution: AnimResolution = '1080p'): number {
 	const w = element.offsetWidth;
 	const h = element.offsetHeight;
 	if (w <= 0 || h <= 0) return 1;
-	const scaleW = MAX_ANIM_WIDTH / w;
-	const scaleH = MAX_ANIM_HEIGHT / h;
+	const cap = RESOLUTION_CAPS[resolution];
+	const scaleW = cap.w / w;
+	const scaleH = cap.h / h;
 	return Math.min(1, scaleW, scaleH);
 }
 
@@ -237,12 +242,13 @@ export async function captureFrames(
 	fps: number,
 	onFrame: (time: number) => void,
 	onProgress?: (pct: number) => void,
-	_tracks?: AnimationTrack[] // reserved for future use
+	_tracks?: AnimationTrack[], // reserved for future use
+	resolution: AnimResolution = '1080p'
 ): Promise<Blob[]> {
 	const clampedFps = Math.min(fps, MAX_EXPORT_FPS);
 	const totalFrames = Math.ceil((duration / 1000) * clampedFps);
 	const frameInterval = duration / totalFrames;
-	const pixelRatio = computeExportPixelRatio(element);
+	const pixelRatio = computeExportPixelRatio(element, resolution);
 	const frames: Blob[] = [];
 
 	for (let i = 0; i < totalFrames; i++) {

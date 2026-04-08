@@ -209,8 +209,48 @@
 				/>
 			{/if}
 
-			<!-- Text overlay above -->
-			{#if store.textOverlay.enabled && store.textOverlay.text && store.textOverlay.position === 'above'}
+			<!-- Text blocks (above position) -->
+			{#each store.textBlocks.filter(t => t.text && t.position === 'above') as tb (tb.id)}
+				{@const isSelText = store.selectedTextId === tb.id}
+				<div
+					class="absolute left-0 right-0 text-center"
+					style="top: {store.padding * 0.4}px;
+						font-size: {tb.fontSize}px;
+						font-weight: {tb.fontWeight};
+						font-family: '{tb.fontFamily}', sans-serif;
+						color: {tb.color};
+						text-align: {tb.textAlign};
+						letter-spacing: {tb.letterSpacing}px;
+						line-height: {tb.lineHeight};
+						padding: 0 {store.padding}px;
+						overflow: visible;
+						{tb.maxWidth > 0 ? `max-width: ${tb.maxWidth}%; margin: 0 auto; word-wrap: break-word; overflow-wrap: break-word; white-space: normal;` : ''}
+						transform: perspective(1200px) rotateX({tb.tiltX}deg) rotateY({tb.tiltY}deg) rotate({tb.rotation}deg);
+						{tb.shadow.enabled ? `text-shadow: ${tb.shadow.offsetX}px ${tb.shadow.offsetY}px ${tb.shadow.blur}px ${tb.shadow.color};` : ''}
+						{isSelText ? 'outline: 2px dashed rgba(236,72,153,0.4); outline-offset: 4px;' : ''}"
+					onclick={() => store.selectTextBlock(tb.id)}
+				>
+					{#if tb.arcDegrees !== 0}
+						{@const estW = Math.max(500, tb.fontSize * tb.text.length * 0.7)}
+						{@const estH = Math.max(300, tb.fontSize * 4)}
+						{@const pathD = makeTextPath(tb.pathType, tb.arcDegrees, estW * 0.85)}
+						<svg viewBox="-{estW / 2} -{estH / 2} {estW} {estH}" style="width: 100%; height: {estH}px; overflow: visible; display: block;">
+							<defs>
+								<path id="text-arc-{tb.id}" d={pathD} />
+							</defs>
+							<text fill={tb.color} font-size={tb.fontSize} font-weight={tb.fontWeight} font-family="'{tb.fontFamily}', sans-serif" letter-spacing={tb.letterSpacing} text-anchor="middle"
+								style={tb.shadow.enabled ? `filter: drop-shadow(${tb.shadow.offsetX}px ${tb.shadow.offsetY}px ${tb.shadow.blur}px ${tb.shadow.color})` : ''}>
+								<textPath href="#text-arc-{tb.id}" startOffset="50%">{tb.text}</textPath>
+							</text>
+						</svg>
+					{:else}
+						{tb.text}
+					{/if}
+				</div>
+			{/each}
+
+			<!-- Legacy single text overlay above (backward compat) -->
+			{#if store.textOverlay.enabled && store.textOverlay.text && store.textOverlay.position === 'above' && store.textBlocks.length === 0}
 				{@const to = store.textOverlay}
 				<div
 					class="absolute left-0 right-0 text-center"
@@ -284,8 +324,70 @@
 				{/if}
 			{/each}
 
-			<!-- Text overlay below -->
-			{#if store.textOverlay.enabled && store.textOverlay.text && store.textOverlay.position === 'below'}
+			<!-- Text blocks (below position) -->
+			{#each store.textBlocks.filter(t => t.text && t.position === 'below') as tb (tb.id)}
+				{@const isSelText = store.selectedTextId === tb.id}
+				<div
+					class="absolute bottom-0 left-0 right-0 text-center"
+					style="bottom: {store.padding * 0.4}px;
+						font-size: {tb.fontSize}px;
+						font-weight: {tb.fontWeight};
+						font-family: '{tb.fontFamily}', sans-serif;
+						color: {tb.color};
+						text-align: {tb.textAlign};
+						letter-spacing: {tb.letterSpacing}px;
+						line-height: {tb.lineHeight};
+						padding: 0 {store.padding}px;
+						{tb.maxWidth > 0 ? `max-width: ${tb.maxWidth}%; margin: 0 auto; word-wrap: break-word; overflow-wrap: break-word; white-space: normal;` : ''}
+						transform: perspective(1200px) rotateX({tb.tiltX}deg) rotateY({tb.tiltY}deg) rotate({tb.rotation}deg);
+						{tb.shadow.enabled ? `text-shadow: ${tb.shadow.offsetX}px ${tb.shadow.offsetY}px ${tb.shadow.blur}px ${tb.shadow.color};` : ''}
+						{isSelText ? 'outline: 2px dashed rgba(236,72,153,0.4); outline-offset: 4px;' : ''}"
+					onclick={() => store.selectTextBlock(tb.id)}
+				>
+					{tb.text}
+				</div>
+			{/each}
+
+			<!-- Text blocks (custom position) -->
+			{#each store.textBlocks.filter(t => t.text && t.position === 'custom') as tb (tb.id)}
+				{@const isSelText = store.selectedTextId === tb.id}
+				<div
+					class="absolute"
+					style="left: {tb.x}%; top: {tb.y}%;
+						transform: translate(-50%, -50%) perspective(1200px) rotateX({tb.tiltX}deg) rotateY({tb.tiltY}deg) rotate({tb.rotation}deg);
+						font-size: {tb.fontSize}px;
+						font-weight: {tb.fontWeight};
+						font-family: '{tb.fontFamily}', sans-serif;
+						color: {tb.color};
+						text-align: {tb.textAlign};
+						letter-spacing: {tb.letterSpacing}px;
+						line-height: {tb.lineHeight};
+						{tb.maxWidth > 0 ? `max-width: ${tb.maxWidth}%; word-wrap: break-word; overflow-wrap: break-word; white-space: normal;` : 'white-space: nowrap;'}
+						{tb.shadow.enabled ? `text-shadow: ${tb.shadow.offsetX}px ${tb.shadow.offsetY}px ${tb.shadow.blur}px ${tb.shadow.color};` : ''}
+						{isSelText ? 'outline: 2px dashed rgba(236,72,153,0.4); outline-offset: 4px;' : ''}"
+					onclick={() => store.selectTextBlock(tb.id)}
+				>
+					{#if tb.arcDegrees !== 0}
+						{@const svgW = Math.max(400, tb.fontSize * tb.text.length * 0.7)}
+						{@const svgH = Math.max(250, tb.fontSize * 4)}
+						{@const pathD = makeTextPath(tb.pathType, tb.arcDegrees, svgW * 0.85)}
+						<svg style="overflow: visible; width: {svgW}px; height: {svgH}px; display: block;" viewBox="-{svgW / 2} -{svgH / 2} {svgW} {svgH}">
+							<defs>
+								<path id="text-path-{tb.id}" d={pathD} />
+							</defs>
+							<text fill={tb.color} font-size={tb.fontSize} font-weight={tb.fontWeight} font-family="'{tb.fontFamily}', sans-serif" letter-spacing={tb.letterSpacing} text-anchor="middle"
+								style={tb.shadow.enabled ? `filter: drop-shadow(${tb.shadow.offsetX}px ${tb.shadow.offsetY}px ${tb.shadow.blur}px ${tb.shadow.color})` : ''}>
+								<textPath href="#text-path-{tb.id}" startOffset="50%">{tb.text}</textPath>
+							</text>
+						</svg>
+					{:else}
+						{tb.text}
+					{/if}
+				</div>
+			{/each}
+
+			<!-- Legacy single text overlay below (backward compat) -->
+			{#if store.textOverlay.enabled && store.textOverlay.text && store.textOverlay.position === 'below' && store.textBlocks.length === 0}
 				{@const to = store.textOverlay}
 				<div
 					class="absolute bottom-0 left-0 right-0 text-center"
@@ -305,8 +407,8 @@
 				</div>
 			{/if}
 
-			<!-- Text overlay custom position -->
-			{#if store.textOverlay.enabled && store.textOverlay.text && store.textOverlay.position === 'custom'}
+			<!-- Legacy single text overlay custom (backward compat) -->
+			{#if store.textOverlay.enabled && store.textOverlay.text && store.textOverlay.position === 'custom' && store.textBlocks.length === 0}
 				{@const to = store.textOverlay}
 				<div
 					class="absolute whitespace-nowrap"

@@ -9,6 +9,7 @@ import type {
 	MonkrState,
 	SceneObject,
 	ShadowConfig,
+	TextBlock,
 	TextOverlay
 } from '../types';
 import type { LayoutTemplate } from '../templates';
@@ -19,6 +20,42 @@ import { mockupScenes } from '../mockups';
 let _nextId = 1;
 function genId(): string {
 	return `obj-${_nextId++}`;
+}
+
+let _nextTextId = 1;
+function genTextId(): string {
+	return `txt-${_nextTextId++}`;
+}
+
+function createDefaultTextBlock(overrides?: Partial<TextBlock>): TextBlock {
+	return {
+		id: genTextId(),
+		text: '',
+		fontSize: 48,
+		color: '#ffffff',
+		position: 'custom',
+		fontWeight: 600,
+		fontFamily: 'Inter',
+		textAlign: 'center',
+		letterSpacing: -0.5,
+		lineHeight: 1.2,
+		x: 50,
+		y: 15,
+		tiltX: 0,
+		tiltY: 0,
+		rotation: 0,
+		shadow: {
+			enabled: false,
+			color: 'rgba(0, 0, 0, 0.5)',
+			blur: 10,
+			offsetX: 0,
+			offsetY: 4
+		},
+		arcDegrees: 0,
+		pathType: 'arc' as const,
+		maxWidth: 0,
+		...overrides
+	};
 }
 
 function createDefaultAppStore(): AppStoreConfig {
@@ -38,6 +75,7 @@ function createDefaultObject(): SceneObject {
 		deviceColorId: 'natural-titanium',
 		screenshotUrl: null,
 		screenshotFile: null,
+		extraScreenshots: [],
 		x: 50,
 		y: 50,
 		scale: 1,
@@ -107,6 +145,8 @@ function createDefaultState(): MonkrState {
 			arcDegrees: 0,
 			pathType: 'arc' as const
 		},
+		textBlocks: [],
+		selectedTextId: null,
 		activeMockupId: null,
 		mockupImageUrl: null,
 		mockupScreenshotUrl: null,
@@ -128,16 +168,19 @@ const AUTOSAVE_KEY = 'monkr_autosave';
 /** Serialize state for localStorage (strips blob URLs and File objects) */
 function serializeState(state: MonkrState): string {
 	return JSON.stringify({
-		version: 2,
+		version: 3,
 		background: { ...state.background, imageUrl: null },
 		canvasSize: state.canvasSize,
 		padding: state.padding,
 		exportConfig: state.exportConfig,
 		textOverlay: state.textOverlay,
+		textBlocks: state.textBlocks,
+		selectedTextId: state.selectedTextId,
 		sceneObjects: state.sceneObjects.map((o) => ({
 			...o,
 			screenshotUrl: null,
-			screenshotFile: null
+			screenshotFile: null,
+			extraScreenshots: []
 		})),
 		selectedObjectId: state.selectedObjectId,
 		activeMockupId: state.activeMockupId,
@@ -159,12 +202,21 @@ function loadPersistedState(): MonkrState {
 		const saved = JSON.parse(raw);
 		if (!saved.version) return createDefaultState();
 		const defaults = createDefaultState();
+		// If background was image type but we can't restore the blob URL, fall back to gradient
+		const savedBg = saved.background ?? {};
+		const bgType = savedBg.type === 'image' ? 'gradient' : (savedBg.type ?? defaults.background.type);
 		const state: MonkrState = {
-			background: { ...defaults.background, ...saved.background, imageUrl: null },
+			background: { ...defaults.background, ...savedBg, imageUrl: null, type: bgType },
 			canvasSize: saved.canvasSize ?? defaults.canvasSize,
 			padding: saved.padding ?? defaults.padding,
 			exportConfig: saved.exportConfig ?? defaults.exportConfig,
 			textOverlay: { ...defaults.textOverlay, ...saved.textOverlay },
+			textBlocks: (saved.textBlocks ?? []).map((tb: TextBlock) => ({
+				...createDefaultTextBlock(),
+				...tb,
+				id: genTextId()
+			})),
+			selectedTextId: null,
 			sceneObjects: (saved.sceneObjects ?? []).map((o: SceneObject) => ({
 				...createDefaultObject(),
 				...o,
@@ -252,6 +304,18 @@ class MonkrStore {
 
 	get textOverlay(): TextOverlay {
 		return this._state.textOverlay;
+	}
+
+	get textBlocks(): TextBlock[] {
+		return this._state.textBlocks;
+	}
+
+	get selectedTextId(): string | null {
+		return this._state.selectedTextId;
+	}
+
+	get selectedTextBlock(): TextBlock | undefined {
+		return this._state.textBlocks.find((t) => t.id === this._state.selectedTextId);
 	}
 
 	get activeMockupId(): string | null {
@@ -377,6 +441,41 @@ class MonkrStore {
 		this.updateObject(id, { screenshotUrl: null, screenshotFile: null });
 	}
 
+	addObjectExtraScreenshots(id: string, files: File[]) {
+		const obj = this._state.sceneObjects.find((o) => o.id === id);
+		if (!obj) return;
+		const newExtras = files.map((f) => ({ url: URL.createObjectURL(f), file: f }));
+
+		// If primary screenshot is empty, use the first file as primary
+		if (!obj.screenshotUrl && newExtras.length > 0) {
+			const [first, ...rest] = newExtras;
+			this.updateObject(id, {
+				screenshotUrl: first.url,
+				screenshotFile: first.file,
+				extraScreenshots: [...obj.extraScreenshots, ...rest]
+			});
+		} else {
+			this.updateObject(id, { extraScreenshots: [...obj.extraScreenshots, ...newExtras] });
+		}
+	}
+
+	removeObjectExtraScreenshot(id: string, index: number) {
+		const obj = this._state.sceneObjects.find((o) => o.id === id);
+		if (!obj) return;
+		const extra = obj.extraScreenshots[index];
+		if (extra) URL.revokeObjectURL(extra.url);
+		const updated = [...obj.extraScreenshots];
+		updated.splice(index, 1);
+		this.updateObject(id, { extraScreenshots: updated });
+	}
+
+	clearObjectExtraScreenshots(id: string) {
+		const obj = this._state.sceneObjects.find((o) => o.id === id);
+		if (!obj) return;
+		obj.extraScreenshots.forEach((e) => URL.revokeObjectURL(e.url));
+		this.updateObject(id, { extraScreenshots: [] });
+	}
+
 	setObjectShadow(id: string, shadow: Partial<ShadowConfig>) {
 		const obj = this._state.sceneObjects.find((o) => o.id === id);
 		if (!obj) return;
@@ -484,6 +583,25 @@ class MonkrStore {
 			tiltY: d.tiltY
 		}));
 		this._state.selectedObjectId = this._state.sceneObjects[0]?.id ?? null;
+
+		// Apply text blocks from scene preset
+		if (scene.textBlocks && scene.textBlocks.length > 0) {
+			this._state.textBlocks = scene.textBlocks.map((tb) =>
+				createDefaultTextBlock({
+					text: tb.text,
+					x: tb.x,
+					y: tb.y,
+					fontSize: tb.fontSize,
+					color: tb.color,
+					fontWeight: tb.fontWeight
+				})
+			);
+			this._state.selectedTextId = this._state.textBlocks[0]?.id ?? null;
+		} else {
+			this._state.textBlocks = [];
+			this._state.selectedTextId = null;
+		}
+
 		this._scheduleSave();
 	}
 
@@ -573,6 +691,48 @@ class MonkrStore {
 
 	setTextOverlay(overlay: Partial<TextOverlay>) {
 		this._state.textOverlay = { ...this._state.textOverlay, ...overlay };
+		this._scheduleSave();
+	}
+
+	// ─── Text Blocks ──────────────────────────────────────
+
+	addTextBlock(overrides?: Partial<TextBlock>) {
+		const tb = createDefaultTextBlock(overrides);
+		this._state.textBlocks = [...this._state.textBlocks, tb];
+		this._state.selectedTextId = tb.id;
+		this._scheduleSave();
+	}
+
+	removeTextBlock(id: string) {
+		this._state.textBlocks = this._state.textBlocks.filter((t) => t.id !== id);
+		if (this._state.selectedTextId === id) {
+			this._state.selectedTextId = this._state.textBlocks[0]?.id ?? null;
+		}
+		this._scheduleSave();
+	}
+
+	selectTextBlock(id: string | null) {
+		this._state.selectedTextId = id;
+	}
+
+	updateTextBlock(id: string, update: Partial<TextBlock>) {
+		this._state.textBlocks = this._state.textBlocks.map((t) =>
+			t.id === id ? { ...t, ...update } : t
+		);
+		this._scheduleSave();
+	}
+
+	duplicateTextBlock(id: string) {
+		const tb = this._state.textBlocks.find((t) => t.id === id);
+		if (!tb) return;
+		const newTb: TextBlock = {
+			...tb,
+			id: genTextId(),
+			x: Math.min(tb.x + 5, 95),
+			y: Math.min(tb.y + 5, 95)
+		};
+		this._state.textBlocks = [...this._state.textBlocks, newTb];
+		this._state.selectedTextId = newTb.id;
 		this._scheduleSave();
 	}
 
@@ -672,31 +832,69 @@ class MonkrStore {
 
 	// ─── Project Save / Load ───────────────────────────────
 
-	/** Serialize current project state to a JSON string (excludes blob URLs) */
-	exportProject(): string {
+	/** Convert a blob URL or File to a data URL */
+	private async _toDataUrl(blobUrl: string | null, file: File | null): Promise<string | null> {
+		if (!blobUrl && !file) return null;
+		try {
+			const blob = file ? file : await fetch(blobUrl!).then((r) => r.blob());
+			return new Promise((resolve) => {
+				const reader = new FileReader();
+				reader.onloadend = () => resolve(reader.result as string);
+				reader.onerror = () => resolve(null);
+				reader.readAsDataURL(blob);
+			});
+		} catch {
+			return null;
+		}
+	}
+
+	/** Serialize current project state to a JSON string (includes screenshots as data URLs) */
+	async exportProject(): Promise<string> {
 		const state = this._state;
+
+		// Convert background image to data URL
+		let bgImageDataUrl: string | null = null;
+		if (state.background.type === 'image' && state.background.imageUrl) {
+			bgImageDataUrl = await this._toDataUrl(state.background.imageUrl, null);
+		}
+
+		// Convert screenshots to data URLs
+		const sceneObjects = await Promise.all(
+			state.sceneObjects.map(async (o) => {
+				const extraScreenshots = await Promise.all(
+					o.extraScreenshots.map(async (e) => ({
+						url: await this._toDataUrl(e.url, e.file) ?? '',
+						file: null
+					}))
+				);
+				return {
+					...o,
+					screenshotUrl: await this._toDataUrl(o.screenshotUrl, o.screenshotFile),
+					screenshotFile: null,
+					extraScreenshots: extraScreenshots.filter((e) => e.url)
+				};
+			})
+		);
+
 		const project = {
-			version: 1,
+			version: 3,
 			background: {
 				...state.background,
-				imageUrl: null // Can't serialize blob URLs
+				imageUrl: bgImageDataUrl
 			},
 			canvasSize: state.canvasSize,
 			padding: state.padding,
 			exportConfig: state.exportConfig,
 			textOverlay: state.textOverlay,
-			sceneObjects: state.sceneObjects.map((o) => ({
-				...o,
-				screenshotUrl: null, // Can't serialize blob URLs
-				screenshotFile: null
-			}))
+			textBlocks: state.textBlocks,
+			sceneObjects
 		};
 		return JSON.stringify(project, null, 2);
 	}
 
 	/** Save project as a downloadable .monkr JSON file */
-	saveProject(name = 'monkr-project') {
-		const json = this.exportProject();
+	async saveProject(name = 'monkr-project') {
+		const json = await this.exportProject();
 		const blob = new Blob([json], { type: 'application/json' });
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a');
@@ -704,6 +902,22 @@ class MonkrStore {
 		a.download = `${name}.monkr`;
 		a.click();
 		URL.revokeObjectURL(url);
+	}
+
+	/** Convert a data URL to a blob URL */
+	private _dataUrlToBlobUrl(dataUrl: string | null): string | null {
+		if (!dataUrl || !dataUrl.startsWith('data:')) return null;
+		try {
+			const [header, base64] = dataUrl.split(',');
+			const mime = header.match(/data:(.*?);/)?.[1] ?? 'image/png';
+			const bytes = atob(base64);
+			const arr = new Uint8Array(bytes.length);
+			for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+			const blob = new Blob([arr], { type: mime });
+			return URL.createObjectURL(blob);
+		} catch {
+			return null;
+		}
 	}
 
 	/** Load project from a .monkr JSON file */
@@ -716,18 +930,47 @@ class MonkrStore {
 				if (o.screenshotUrl) URL.revokeObjectURL(o.screenshotUrl);
 			});
 			if (this._state.background.imageUrl) URL.revokeObjectURL(this._state.background.imageUrl);
+
+			// Restore background image from data URL
+			let bgImageUrl: string | null = null;
+			let bgType = project.background?.type ?? 'gradient';
+			if (project.background?.imageUrl?.startsWith('data:')) {
+				bgImageUrl = this._dataUrlToBlobUrl(project.background.imageUrl);
+			}
+
 			this._state = {
 				...createDefaultState(),
-				background: { ...createDefaultState().background, ...project.background },
+				background: {
+					...createDefaultState().background,
+					...project.background,
+					imageUrl: bgImageUrl,
+					type: bgImageUrl ? bgType : (bgType === 'image' ? 'gradient' : bgType)
+				},
 				canvasSize: project.canvasSize ?? createDefaultState().canvasSize,
 				padding: project.padding ?? 60,
 				exportConfig: project.exportConfig ?? createDefaultState().exportConfig,
 				textOverlay: { ...createDefaultState().textOverlay, ...project.textOverlay },
-				sceneObjects: (project.sceneObjects ?? []).map((o: SceneObject) => ({
-					...createDefaultObject(),
-					...o,
-					id: genId()
+				textBlocks: (project.textBlocks ?? []).map((tb: TextBlock) => ({
+					...createDefaultTextBlock(),
+					...tb,
+					id: genTextId()
 				})),
+				selectedTextId: null,
+				sceneObjects: (project.sceneObjects ?? []).map((o: any) => {
+					const screenshotUrl = this._dataUrlToBlobUrl(o.screenshotUrl as string | null);
+					const extraScreenshots = (o.extraScreenshots ?? []).map((e: any) => ({
+						url: this._dataUrlToBlobUrl(e.url) ?? '',
+						file: null
+					})).filter((e: any) => e.url);
+					return {
+						...createDefaultObject(),
+						...o,
+						screenshotUrl,
+						screenshotFile: null,
+						extraScreenshots,
+						id: genId()
+					};
+				}),
 				selectedObjectId: null
 			};
 			if (this._state.sceneObjects.length > 0) {
@@ -743,9 +986,9 @@ class MonkrStore {
 	}
 
 	/** Save current project to localStorage */
-	saveToLocalStorage(name: string) {
+	async saveToLocalStorage(name: string) {
 		const projects = this.getSavedProjects();
-		const json = this.exportProject();
+		const json = await this.exportProject();
 		const existing = projects.findIndex((p) => p.name === name);
 		const entry = { name, date: new Date().toISOString(), data: json };
 		const stored = JSON.parse(localStorage.getItem('monkr_project_data') ?? '{}');
