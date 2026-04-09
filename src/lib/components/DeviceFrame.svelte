@@ -36,13 +36,46 @@
 	let maskUrl = $derived(isCssDevice ? '' : deviceRegistry.getMaskUrl(device));
 	let showFrame = $derived(frameStyle !== 'none');
 
-	// Use a reasonable display size (scale down large PNGs)
-	let displayW = $derived(Math.min(device.pngW, 600));
-	let displayH = $derived(displayW * (device.pngH / device.pngW));
-
 	let isBrowser = $derived(device.category === 'browser');
 	let isTv = $derived(device.category === 'tv');
 	let isDarkBrowser = $derived(device.id === 'browser-dark');
+
+	// Track screenshot natural dimensions for aspect-ratio-aware rendering
+	let screenshotNatW = $state(0);
+	let screenshotNatH = $state(0);
+
+	$effect(() => {
+		const url = screenshotUrl;
+		if (!url) {
+			screenshotNatW = 0;
+			screenshotNatH = 0;
+			return;
+		}
+		const img = new Image();
+		img.onload = () => {
+			screenshotNatW = img.naturalWidth;
+			screenshotNatH = img.naturalHeight;
+		};
+		img.src = url;
+	});
+
+	let hasScreenshotDims = $derived(screenshotNatW > 0 && screenshotNatH > 0);
+
+	// Use a reasonable display size (scale down large PNGs)
+	let displayW = $derived(Math.min(device.pngW, 600));
+	let displayH = $derived.by(() => {
+		if (frameStyle === 'none' && hasScreenshotDims) {
+			// No frame: use screenshot's native aspect ratio
+			return displayW * (screenshotNatH / screenshotNatW);
+		}
+		if (isBrowser && hasScreenshotDims) {
+			// Browser: content area matches screenshot AR, plus chrome (title bar + borders)
+			const chromeH = ((device.pngH - device.svgH) / device.pngW) * displayW;
+			return displayW * (screenshotNatH / screenshotNatW) + chromeH;
+		}
+		// Default: use device frame aspect ratio
+		return displayW * (device.pngH / device.pngW);
+	});
 </script>
 
 <div
