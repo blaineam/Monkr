@@ -114,6 +114,26 @@
 		window.removeEventListener('mouseup', handleDragEnd);
 	}
 
+	// Track screenshot natural dimensions for aspect-ratio-aware rendering
+	let screenshotDimsMap = $state<Record<string, {w: number, h: number}>>({});
+	const _measuredUrls = new Map<string, string>();
+
+	$effect(() => {
+		const objects = store.sceneObjects;
+		for (const obj of objects) {
+			const url = obj.screenshotUrl;
+			const id = obj.id;
+			if (url && _measuredUrls.get(id) !== url) {
+				_measuredUrls.set(id, url);
+				const img = new Image();
+				img.onload = () => {
+					screenshotDimsMap[id] = { w: img.naturalWidth, h: img.naturalHeight };
+				};
+				img.src = url;
+			}
+		}
+	});
+
 </script>
 
 <div bind:this={wrapperRef} class="relative h-full w-full bg-zinc-950 {store.appStoreEnabled ? 'overflow-auto' : 'overflow-hidden'}">
@@ -292,8 +312,17 @@
 				{@const color = deviceRegistry.getDeviceColor(obj.deviceId, obj.deviceColorId)}
 				{@const isSelected = store.selectedObjectId === obj.id}
 				{#if device}
+					{@const ssDims = screenshotDimsMap[obj.id]}
+					{@const ssW = ssDims?.w ?? 0}
+					{@const ssH = ssDims?.h ?? 0}
+					{@const hasSSdims = ssW > 0 && ssH > 0}
+					{@const isBrowserDev = device.category === 'browser'}
 					{@const displayW = Math.min(device.pngW, 600)}
-					{@const displayH = displayW * (device.pngH / device.pngW)}
+					{@const displayH = (obj.frameStyle === 'none' && hasSSdims)
+						? displayW * (ssH / ssW)
+						: (isBrowserDev && hasSSdims)
+							? displayW * (ssH / ssW) + ((device.pngH - device.svgH) / device.pngW) * displayW
+							: displayW * (device.pngH / device.pngW)}
 					{@const maxScale = Math.min(
 						(store.canvasSize.width - store.padding * 2) / displayW,
 						(store.canvasSize.height - store.padding * 2) / displayH,
