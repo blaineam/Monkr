@@ -231,7 +231,7 @@ function computeExportPixelRatio(element: HTMLElement, resolution: AnimResolutio
  * html-to-image clones inline styles including that transform — resulting
  * in the content being rendered at a tiny scale in the top-left corner.
  */
-function stripTransformForCapture(element: HTMLElement): () => void {
+export function stripTransformForCapture(element: HTMLElement): () => void {
 	const original = element.style.transform;
 	const originalOrigin = element.style.transformOrigin;
 	element.style.transform = 'none';
@@ -265,7 +265,7 @@ async function urlToDataUrl(url: string): Promise<string> {
  *
  * Returns a cleanup function that restores original sources.
  */
-async function preInlineImages(root: HTMLElement): Promise<() => void> {
+export async function preInlineImages(root: HTMLElement): Promise<() => void> {
 	const imgOriginals = new Map<HTMLImageElement, string>();
 	const bgOriginals = new Map<HTMLElement, string>();
 
