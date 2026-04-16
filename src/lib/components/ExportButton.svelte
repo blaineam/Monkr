@@ -83,8 +83,19 @@
 					screenshotFile: allScreenshots[i].file
 				});
 
-				// Wait for DOM update
-				await new Promise<void>((r) => setTimeout(r, 100));
+				// Wait for DOM update + all images to finish loading
+				await new Promise<void>((r) => requestAnimationFrame(() => r()));
+				await new Promise<void>((resolve) => {
+					const images = Array.from(canvasRef!.querySelectorAll('img'));
+					const pending = images.filter((img) => !img.complete);
+					if (pending.length === 0) return resolve();
+					let remaining = pending.length;
+					const onDone = () => { if (--remaining <= 0) resolve(); };
+					for (const img of pending) {
+						img.addEventListener('load', onDone, { once: true });
+						img.addEventListener('error', onDone, { once: true });
+					}
+				});
 
 				// Export
 				if (store.appStoreEnabled) {
