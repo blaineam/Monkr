@@ -539,7 +539,7 @@
 							<span class="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">Transform</span>
 							<PositionPad x={selectedObj.x} y={selectedObj.y}
 								onchange={(nx, ny) => store.updateObject(selectedObj!.id, { x: nx, y: ny })} />
-							<Slider label="Scale" value={selectedObj.scale} min={0.2} max={5} step={0.05} unit="x"
+							<Slider label="Scale" value={selectedObj.scale} min={0.2} max={10} step={0.05} unit="x"
 								onchange={(v) => store.updateObject(selectedObj!.id, { scale: v })} />
 							<Slider label="Rotation" value={selectedObj.rotation} min={-180} max={180} step={1} unit="°"
 								onchange={(v) => store.updateObject(selectedObj!.id, { rotation: v })} />
