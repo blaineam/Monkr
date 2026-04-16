@@ -325,8 +325,7 @@
 							: displayW * (device.pngH / device.pngW)}
 					{@const maxScale = Math.min(
 						(store.canvasSize.width - store.padding * 2) / displayW,
-						(store.canvasSize.height - store.padding * 2) / displayH,
-						1
+						(store.canvasSize.height - store.padding * 2) / displayH
 					)}
 					<!-- svelte-ignore a11y_click_events_have_key_events -->
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
