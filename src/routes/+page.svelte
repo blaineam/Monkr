@@ -5,6 +5,17 @@
 
 	let canvasRef = $state<HTMLDivElement | undefined>(undefined);
 	let mobileMenuOpen = $state(false);
+	let isPortrait = $state(false);
+
+	$effect(() => {
+		const mq = window.matchMedia('(orientation: portrait)');
+		isPortrait = mq.matches;
+		const handler = (e: MediaQueryListEvent) => {
+			isPortrait = e.matches;
+		};
+		mq.addEventListener('change', handler);
+		return () => mq.removeEventListener('change', handler);
+	});
 </script>
 
 <div class="flex h-screen flex-col bg-zinc-950">
@@ -41,21 +52,26 @@
 	</header>
 
 	<!-- Main content -->
-	<div class="relative flex flex-1 overflow-hidden">
-		<!-- Sidebar - Desktop -->
+	<div class="relative flex flex-1 overflow-hidden" class:flex-col={isPortrait && mobileMenuOpen}>
+		<!-- Sidebar - Desktop only -->
 		<div class="hidden w-72 flex-shrink-0 border-r border-zinc-800/60 lg:block">
 			<Sidebar {canvasRef}  />
 		</div>
 
 		<!-- Canvas -->
-		<div class="flex-1">
+		<div class="{isPortrait && mobileMenuOpen ? 'min-h-0 flex-[2]' : 'flex-1'}">
 			<Canvas bind:canvasRef />
 		</div>
 
-		<!-- Mobile sidebar overlay -->
-		{#if mobileMenuOpen}
+		<!-- Mobile sidebar - Portrait: bottom panel occupying bottom third -->
+		{#if mobileMenuOpen && isPortrait}
+			<div class="min-h-0 flex-[1] w-full border-t border-zinc-800/60 lg:hidden">
+				<Sidebar {canvasRef}  />
+			</div>
+		<!-- Mobile sidebar - Landscape: side panel without blur overlay -->
+		{:else if mobileMenuOpen}
 			<button
-				class="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+				class="fixed inset-0 z-40 lg:hidden"
 				onclick={() => (mobileMenuOpen = false)}
 				aria-label="Close menu"
 			></button>
