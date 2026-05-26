@@ -256,18 +256,25 @@ async function urlToDataUrl(url: string): Promise<string> {
 
 /**
  * Pre-inline all images within a DOM subtree as base64 data URLs.
- * This includes both <img> elements and CSS background-image URLs.
+ * This includes <img> elements, CSS background-image, and CSS mask-image URLs.
  *
- * html-to-image clones the DOM and re-fetches/re-encodes every image
- * source for EACH frame. By inlining them as data URLs first, the cloned
- * DOM inherits the data URLs and the library skips all I/O — this is
- * the single biggest speedup for frame capture on Safari.
+ * html-to-image clones the DOM and re-fetches every image source. For mask-image
+ * URLs, canvas drawing blocks external URLs entirely (canvas taint security), so
+ * masks randomly fail unless we inline them as data URLs first.
  *
  * Returns a cleanup function that restores original sources.
  */
 export async function preInlineImages(root: HTMLElement): Promise<() => void> {
 	const imgOriginals = new Map<HTMLImageElement, string>();
-	const bgOriginals = new Map<HTMLElement, string>();
+	// Per-element: map of CSS property name → original value (covers background-image, mask-image, etc.)
+	const cssUrlOriginals = new Map<HTMLElement, Map<string, string>>();
+
+	// Shared URL → data-URL cache so identical SVGs/images are only fetched once
+	const urlCache = new Map<string, Promise<string>>();
+	function cachedDataUrl(url: string): Promise<string> {
+		if (!urlCache.has(url)) urlCache.set(url, urlToDataUrl(url));
+		return urlCache.get(url)!;
+	}
 
 	// Inline <img> src attributes
 	const imgs = root.querySelectorAll('img');
@@ -276,32 +283,56 @@ export async function preInlineImages(root: HTMLElement): Promise<() => void> {
 		if (!src || src.startsWith('data:')) return;
 		imgOriginals.set(img, src);
 		try {
-			img.src = await urlToDataUrl(src);
+			img.src = await cachedDataUrl(src);
 		} catch {
 			// leave original src
 		}
 	}));
 
-	// Inline CSS background-image url() values
+	const CSS_URL_PROPS = [
+		'backgroundImage',
+		'maskImage',
+		'webkitMaskImage',
+	] as const;
+
+	// Map from JS camelCase property to CSS property name for setProperty/getPropertyValue
+	const CSS_PROP_NAME: Record<string, string> = {
+		backgroundImage: 'background-image',
+		maskImage: 'mask-image',
+		webkitMaskImage: '-webkit-mask-image',
+	};
+
 	const allElements = root.querySelectorAll<HTMLElement>('*');
 	await Promise.all(Array.from(allElements).map(async (el) => {
-		const bgImg = el.style.backgroundImage;
-		if (!bgImg || !bgImg.includes('url(')) return;
-		const match = bgImg.match(/url\(["']?([^"')]+)["']?\)/);
-		if (!match || !match[1] || match[1].startsWith('data:')) return;
-		const url = match[1];
-		bgOriginals.set(el, bgImg);
-		try {
-			const dataUrl = await urlToDataUrl(url);
-			el.style.backgroundImage = `url(${dataUrl})`;
-		} catch {
-			// leave original
+		for (const jsProp of CSS_URL_PROPS) {
+			const val = el.style.getPropertyValue(CSS_PROP_NAME[jsProp]);
+			if (!val || !val.includes('url(')) continue;
+			const match = val.match(/url\(["']?([^"')]+)["']?\)/);
+			if (!match || !match[1] || match[1].startsWith('data:')) continue;
+			const url = match[1];
+
+			if (!cssUrlOriginals.has(el)) cssUrlOriginals.set(el, new Map());
+			cssUrlOriginals.get(el)!.set(CSS_PROP_NAME[jsProp], val);
+
+			try {
+				const dataUrl = await cachedDataUrl(url);
+				el.style.setProperty(CSS_PROP_NAME[jsProp], `url("${dataUrl}")`);
+			} catch {
+				// leave original
+			}
 		}
 	}));
 
+	// One rAF so the browser decodes freshly set data URLs before html-to-image clones
+	await new Promise<void>((r) => requestAnimationFrame(() => r()));
+
 	return () => {
 		for (const [img, src] of imgOriginals) img.src = src;
-		for (const [el, bg] of bgOriginals) el.style.backgroundImage = bg;
+		for (const [el, props] of cssUrlOriginals) {
+			for (const [cssProp, orig] of props) {
+				el.style.setProperty(cssProp, orig);
+			}
+		}
 	};
 }
 

@@ -2,6 +2,11 @@ import { toPng, toJpeg, toBlob } from 'html-to-image';
 import { preInlineImages, stripTransformForCapture } from './animation';
 import type { ExportFormat, ExportScale } from './types';
 
+/** Wait two animation frames so the browser repaints after DOM mutations before capture. */
+function waitForRepaint(): Promise<void> {
+	return new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+}
+
 export async function exportCanvas(
 	element: HTMLElement,
 	format: ExportFormat,
@@ -10,6 +15,9 @@ export async function exportCanvas(
 ): Promise<void> {
 	const restoreImages = await preInlineImages(element);
 	const restoreTransform = stripTransformForCapture(element);
+	// Let the browser reflow/repaint after the transform strip and image inlining before
+	// html-to-image clones the DOM — single rAF is sometimes not enough.
+	await waitForRepaint();
 
 	try {
 		const options = {
@@ -48,6 +56,7 @@ export async function exportCanvasSections(
 ): Promise<void> {
 	const restoreImages = await preInlineImages(element);
 	const restoreTransform = stripTransformForCapture(element);
+	await waitForRepaint();
 
 	try {
 		const options = {
@@ -108,6 +117,7 @@ export async function copyToClipboard(
 ): Promise<void> {
 	const restoreImages = await preInlineImages(element);
 	const restoreTransform = stripTransformForCapture(element);
+	await waitForRepaint();
 
 	try {
 		const blob = await toBlob(element, {
