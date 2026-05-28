@@ -326,6 +326,19 @@ export async function preInlineImages(root: HTMLElement): Promise<() => void> {
 	// One rAF so the browser decodes freshly set data URLs before html-to-image clones
 	await new Promise<void>((r) => requestAnimationFrame(() => r()));
 
+	// img.complete only signals "bytes received" — the pixel decode that makes
+	// the image paintable happens later. html-to-image rasterizes the cloned DOM
+	// immediately, so any <img> still decoding gets drawn as blank/black in the
+	// snapshot (especially on Safari with multi-megapixel screenshots). Await
+	// decode() on every <img> so the next capture sees real pixels.
+	await Promise.all(Array.from(imgs).map((img) =>
+		img.decode().catch(() => new Promise<void>((resolve) => {
+			if (img.complete) return resolve();
+			img.addEventListener('load', () => resolve(), { once: true });
+			img.addEventListener('error', () => resolve(), { once: true });
+		}))
+	));
+
 	return () => {
 		for (const [img, src] of imgOriginals) img.src = src;
 		for (const [el, props] of cssUrlOriginals) {

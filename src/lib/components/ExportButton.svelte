@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import { Download, Copy, Check, Layers } from 'lucide-svelte';
 	import { store } from '../stores/state.svelte';
 	import { exportCanvas, exportCanvasSections, copyToClipboard } from '../export';
@@ -83,19 +84,24 @@
 					screenshotFile: allScreenshots[i].file
 				});
 
-				// Wait for DOM update + all images to finish loading
+				// Wait for Svelte to flush + the browser to paint two frames so
+				// the new src is committed on the <img> element.
+				await tick();
 				await new Promise<void>((r) => requestAnimationFrame(() => r()));
-				await new Promise<void>((resolve) => {
-					const images = Array.from(canvasRef!.querySelectorAll('img'));
-					const pending = images.filter((img) => !img.complete);
-					if (pending.length === 0) return resolve();
-					let remaining = pending.length;
-					const onDone = () => { if (--remaining <= 0) resolve(); };
-					for (const img of pending) {
-						img.addEventListener('load', onDone, { once: true });
-						img.addEventListener('error', onDone, { once: true });
-					}
-				});
+				await new Promise<void>((r) => requestAnimationFrame(() => r()));
+
+				// img.complete only signals "bytes received," not "decoded for
+				// paint" — html-to-image draws blank/black if it captures before
+				// decode finishes. Await decode() on every <img> so the next
+				// snapshot sees fully-decoded pixels.
+				const images = Array.from(canvasRef!.querySelectorAll('img'));
+				await Promise.all(images.map((img) =>
+					img.decode().catch(() => new Promise<void>((resolve) => {
+						if (img.complete) return resolve();
+						img.addEventListener('load', () => resolve(), { once: true });
+						img.addEventListener('error', () => resolve(), { once: true });
+					}))
+				));
 
 				// Export
 				if (store.appStoreEnabled) {
