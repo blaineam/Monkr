@@ -7,6 +7,45 @@ function waitForRepaint(): Promise<void> {
 	return new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
 }
 
+/**
+ * Safari ships a long-standing bug: images inside an SVG `foreignObject`
+ * decode in a separate context from the main document, so the first capture
+ * after a DOM mutation rasterizes with blank/black image content even though
+ * the source <img> elements are fully decoded on the page. The fix used
+ * across the html-to-image issue tracker is to capture twice — the first
+ * pass warms Safari's SVG image cache, the second returns real pixels.
+ *
+ * Chromium and Firefox don't need this and pay an extra capture for nothing,
+ * so we only double-tap on Safari.
+ */
+const isSafari =
+	typeof navigator !== 'undefined' &&
+	/^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent);
+
+async function captureJpeg(
+	element: HTMLElement,
+	options: Parameters<typeof toJpeg>[1]
+): Promise<string> {
+	if (isSafari) await toJpeg(element, options);
+	return toJpeg(element, options);
+}
+
+async function capturePng(
+	element: HTMLElement,
+	options: Parameters<typeof toPng>[1]
+): Promise<string> {
+	if (isSafari) await toPng(element, options);
+	return toPng(element, options);
+}
+
+async function captureBlob(
+	element: HTMLElement,
+	options: Parameters<typeof toBlob>[1]
+): Promise<Blob | null> {
+	if (isSafari) await toBlob(element, options);
+	return toBlob(element, options);
+}
+
 export async function exportCanvas(
 	element: HTMLElement,
 	format: ExportFormat,
@@ -29,9 +68,9 @@ export async function exportCanvas(
 		let dataUrl: string;
 
 		if (format === 'jpg') {
-			dataUrl = await toJpeg(element, { ...options, backgroundColor: '#000000' });
+			dataUrl = await captureJpeg(element, { ...options, backgroundColor: '#000000' });
 		} else {
-			dataUrl = await toPng(element, options);
+			dataUrl = await capturePng(element, options);
 		}
 
 		const link = document.createElement('a');
@@ -67,9 +106,9 @@ export async function exportCanvasSections(
 
 		let fullDataUrl: string;
 		if (format === 'jpg') {
-			fullDataUrl = await toJpeg(element, { ...options, backgroundColor: '#000000' });
+			fullDataUrl = await captureJpeg(element, { ...options, backgroundColor: '#000000' });
 		} else {
-			fullDataUrl = await toPng(element, options);
+			fullDataUrl = await capturePng(element, options);
 		}
 
 		// Load the full image
@@ -120,7 +159,7 @@ export async function copyToClipboard(
 	await waitForRepaint();
 
 	try {
-		const blob = await toBlob(element, {
+		const blob = await captureBlob(element, {
 			pixelRatio: scale,
 			cacheBust: false
 		});
