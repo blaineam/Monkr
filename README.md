@@ -188,6 +188,31 @@ npm run preview  # preview the build locally
 
 The static build outputs to `build/` and can be deployed anywhere - GitHub Pages, Netlify, Vercel, Cloudflare Pages, or your own server.
 
+### CLI rendering (headless)
+
+Render `.monkr` projects to framed images from the command line — no clicking
+through the UI. It drives Monkr's own renderer (headless Chromium + the
+`/headless` route), so output is **pixel-identical to the Export button**.
+
+```bash
+npm install                         # installs Playwright (a devDependency)
+npx playwright install chromium     # one-time browser download
+
+# render a project's embedded screenshots
+npm run render -- shot.monkr --out out/
+#   or, if linked/installed:  monkr render shot.monkr --out out/
+
+# swap in fresh screenshots (a folder, in name order) and re-save the .monkr
+monkr render App-iphone.monkr --out out/ --save --screenshots raw/iphone/
+```
+
+One framed image is written per screenshot. Useful flags: `--save` (write the
+updated `.monkr`), `--format png|jpg`, `--scale 1|2|3`, `--build` (force a
+rebuild first), and `--device/--color/--canvas` to synthesize a default frame
+when no `.monkr` exists yet. Run `monkr render --help` for the full list. The
+CLI auto-builds the static site on first use. Implemented in `bin/monkr.mjs` +
+`cli/render.mjs`, backed by the headless route at `src/routes/headless/`.
+
 ---
 
 ## Tech Stack
