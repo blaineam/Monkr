@@ -46,12 +46,17 @@ async function captureBlob(
 	return toBlob(element, options);
 }
 
-export async function exportCanvas(
+/**
+ * Capture `element` to a data URL, handling image inlining, the
+ * transform-strip, repaint wait, and the Safari double-tap. This is the shared
+ * core behind {@link exportCanvas}; headless automation calls it directly to
+ * obtain pixels without triggering a browser download.
+ */
+export async function captureToDataUrl(
 	element: HTMLElement,
 	format: ExportFormat,
-	scale: ExportScale,
-	filePrefix?: string
-): Promise<void> {
+	scale: ExportScale
+): Promise<string> {
 	const restoreImages = await preInlineImages(element);
 	const restoreTransform = stripTransformForCapture(element);
 	// Let the browser reflow/repaint after the transform strip and image inlining before
@@ -65,22 +70,27 @@ export async function exportCanvas(
 			quality: format === 'jpg' ? 0.95 : undefined
 		};
 
-		let dataUrl: string;
-
 		if (format === 'jpg') {
-			dataUrl = await captureJpeg(element, { ...options, backgroundColor: '#000000' });
-		} else {
-			dataUrl = await capturePng(element, options);
+			return await captureJpeg(element, { ...options, backgroundColor: '#000000' });
 		}
-
-		const link = document.createElement('a');
-		link.download = `monkr-${filePrefix ?? 'mockup'}-${Date.now()}.${format}`;
-		link.href = dataUrl;
-		link.click();
+		return await capturePng(element, options);
 	} finally {
 		restoreTransform();
 		restoreImages();
 	}
+}
+
+export async function exportCanvas(
+	element: HTMLElement,
+	format: ExportFormat,
+	scale: ExportScale,
+	filePrefix?: string
+): Promise<void> {
+	const dataUrl = await captureToDataUrl(element, format, scale);
+	const link = document.createElement('a');
+	link.download = `monkr-${filePrefix ?? 'mockup'}-${Date.now()}.${format}`;
+	link.href = dataUrl;
+	link.click();
 }
 
 /** Export a canvas element sliced into sections (for App Store mode) */
