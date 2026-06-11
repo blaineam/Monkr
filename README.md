@@ -52,13 +52,21 @@ Pixel-perfect frames for the devices people actually use:
 |----------|---------|
 | **iPhone** | 17 Pro Max, 17 Pro, 17 Air, 17, 16 Pro Max, 16 Pro, 16 Plus, 16, 15 series, 14 series |
 | **Android** | Pixel 7 Pro, Nothing Phone |
-| **iPad** | Pro 13", Pro 11", Air, Mini |
+| **iPad** | Pro (M5) 13" & 11" (official Apple bezels), Pro 13", Pro 11", Air, Mini |
 | **Mac** | MacBook Pro 16", MacBook Air M2, MacBook Air 13" |
-| **Desktop** | iMac 24", iMac Pro, Pro Display XDR |
+| **Desktop** | iMac M4 24" (official Apple bezel), iMac 24", iMac Pro, Pro Display XDR |
 | **Watch** | Apple Watch Series 11 46mm, Apple Watch Ultra 3 49mm — official Apple product bezels (see [docs/APPLE-BEZELS.md](docs/APPLE-BEZELS.md)) |
 | **Other** | Apple TV 4K, Flat Screen TV, Browser (Light & Dark) |
 
 Each device includes multiple color variants and can be freely positioned, scaled, rotated, and tilted in 3D.
+
+Official Apple product-bezel frames are kept in sync with
+[Apple Design Resources](https://developer.apple.com/design/resources/) by
+`npm run sync-bezels` — it discovers every published `Bezel-*.dmg`, diffs
+against `static/devices/manifest.json`, measures the screen cutouts, and
+generates registry entries + mask SVGs automatically. See
+[docs/APPLE-BEZELS.md](docs/APPLE-BEZELS.md) for the workflow, flags, and
+license notes.
 
 ### Backgrounds That Pop
 
@@ -255,7 +263,12 @@ src/
 static/
 ├── backgrounds/        # 100+ curated background images
 ├── devices/            # Device frame PNGs (all sizes + colors)
+│   └── manifest.json   # Apple official-bezel sync state (sync-bezels)
 └── ...                 # Favicons, OG image, manifest
+tools/
+├── sync-bezels.mjs     # Sync frames with Apple's official Product Bezels
+├── measure-bezel.mjs   # PNG alpha-channel screen-cutout measurement
+└── test/               # Fixture-based unit tests (npm test)
 ```
 
 ---

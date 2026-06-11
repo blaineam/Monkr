@@ -1,8 +1,75 @@
 # Apple Official Product Bezels
 
-Monkr's Apple Watch frames use Apple's **official product bezel art** from
+Monkr's Apple Watch, iPad Pro (M5), and iMac (M4) frames use Apple's
+**official product bezel art** from
 [Apple Design Resources](https://developer.apple.com/design/resources/)
 (“Product Bezels” section) instead of programmatically drawn frames.
+
+## `npm run sync-bezels` — the bezel sync tool
+
+`tools/sync-bezels.mjs` keeps the library in sync with the resources page.
+It discovers every published `Bezel-*.dmg` generically (no hardcoded device
+list), so new device classes show up automatically.
+
+```sh
+npm run sync-bezels -- --dry-run            # discover + diff + overlap report
+npm run sync-bezels                         # refresh managed sources (re-import on upstream change)
+npm run sync-bezels -- --import "iPhone-17,iPad-Pro-(M5)"   # adopt + import new sources
+npm run sync-bezels -- --force imac-m4      # re-fetch/re-import even if unchanged
+npm run sync-bezels -- --only ipad …        # restrict any run to matching sources
+npm run sync-bezels -- --cache-dir /tmp/bezels …            # reuse downloaded DMGs
+```
+
+Patterns are case-insensitive substrings; comma = OR.
+
+What a run does, per managed source:
+
+1. **Discover** — fetch the resources page, parse every `Bezel-*.dmg` link
+   (name from the preceding `<h5>` heading). The DMG *filename* (which Apple
+   revs with year/chip suffixes) is the version marker: a rename shows up as
+   one `new` + one `removed`; a same-name URL move as `updated`.
+2. **Diff** — against `static/devices/manifest.json` (the single source of
+   truth: per source → URL, sha256, size, fetch date, device class, status,
+   and the generated registry entries per model slug).
+3. **Fetch + integrate** — download the DMG (sha256-recorded once at fetch),
+   auto-accept the embedded license (`yes | hdiutil attach -nobrowse
+   -readonly`), parse the `PNG/` variants into model + color + orientation
+   (portrait art preferred), measure **every** color PNG with
+   `tools/measure-bezel.mjs`, copy PNGs to `static/devices/<slug>/`,
+   generate a `display.svg` mask from the measured cutout + per-corner radii
+   (non-rect cutouts fall back to the bounding-box rect with a TODO), and
+   emit registry entries into `src/lib/stores/devices.generated.json`.
+4. **Summarize** — imported / shadowed / available / curated tables, TODOs
+   (e.g. device classes that rocket's `DISPLAY_FOR` table can't map to an
+   App Store Connect display type yet), and an overlap report of hand-tuned
+   devices that have an official bezel available.
+
+### Registry merge rule
+
+`src/lib/stores/devices.svelte.ts` merges the two device sources at runtime
+(`devices.merge.js`): **hand-tuned entries always win over generated entries
+on id/slug collision.** Generated model slugs that collide with hand-tuned
+slugs (directly, or via the alias table — Apple's “iPhone Air” is Monkr's
+`iphone-17-air`) are imported as *shadowed*: measured and recorded in the
+manifest, but **no assets are copied and no registry entry is emitted**, so
+existing third-party frame art is never replaced silently. To switch a
+device to official art: delete its hand-tuned entry + old assets, then
+`sync-bezels --force <slug>`.
+
+Source statuses in the manifest:
+
+- `imported` — managed by the tool; refreshed when the upstream DMG changes
+- `curated` — hand-imported (the watch frames): the tool tracks the source
+  and flags upstream changes as TODOs but never touches the assets
+- `available` — discovered but not adopted; adopt with `--import`
+
+Known quirks: model years are taken from the DMG filename when present
+(`…-2025.dmg`), else the fetch year — hand-tune if it matters. Apple's own
+art can drift a couple of pixels between colors of the same model (iMac M4
+Orange sits 2 px right of Blue); the tool tolerates ≤4 px cutout-origin
+drift and TODOs anything larger.
+
+Tests (fixture-based, no network): `npm test` → `tools/test/`.
 
 ## Source downloads (direct CDN, no login required)
 
@@ -25,7 +92,23 @@ cutout, 1×) plus layered `Photoshop/*.psd` masters and
 
 ## Frames currently shipped
 
-Selected from the official PNGs (file names are Apple's, verbatim):
+Synced by the tool (geometry in `static/devices/manifest.json` and
+`src/lib/stores/devices.generated.json`):
+
+| Slug | Source DMG | Frame PNG | Screen cutout | Corner radius |
+| --- | --- | --- | --- | --- |
+| `ipad-pro-m5-11` | Bezel-iPad-Pro-(M5).dmg | 1880×2640 | 1668×2420 @ (106,110) | 61 px |
+| `ipad-pro-m5-13` | Bezel-iPad-Pro-(M5).dmg | 2300×3000 | 2064×2752 @ (118,124) | 61 px |
+| `imac-m4-24` | Bezel-iMac-M4.dmg | 4760×4050 | 4480×2520 @ (140,150) | 0 px (square) |
+
+The iPad Pro cutouts are exactly the ASC screenshot sizes (1668×2420 /
+2064×2752); the iMac cutout is the 4.5K panel at 16:9 (4480×2520).
+`Bezel-iPhone-17.dmg` is also managed, but all four of its models (iPhone 17
+/ Pro / Pro Max / Air, cutouts 1206×2622, 1320×2868, 1260×2736 — the exact
+ASC sizes) are *shadowed* by Monkr's existing hand-tuned third-party iPhone
+frames; see the merge rule above.
+
+Hand-curated from the official PNGs (file names are Apple's, verbatim):
 
 **`apple-watch-series-10-46mm`** (art: Apple Watch Series 11 46mm — the
 S10/S11 46mm case and 416×496 screen are identical; the slug is kept for
@@ -73,6 +156,10 @@ fit of the cutout's top-left curve).
 
 ## Adding more official bezels
 
+Preferred: `npm run sync-bezels -- --import <pattern>` (see above). The
+manual flow still works for one-offs or hand-curated picks (how the watch
+frames were made):
+
 1. Download + mount the DMG as above (or download manually in a browser if a
    future asset becomes login-gated) and drop the chosen PNGs into
    `static/devices/_incoming/` (gitignored scratch space — any flat folder
@@ -81,15 +168,20 @@ fit of the cutout's top-left curve).
 3. Copy each PNG to `static/devices/<device-slug>/<color-slug>.png`, write a
    `display.svg` rounded-rect mask at the cutout size/radius, and add or
    update the `DeviceMeta` entry with the measured geometry.
-4. `npm run build` and smoke-test via `monkr render`.
+4. Mark the source `"status": "curated"` in `static/devices/manifest.json`
+   (sha256 + URL) so sync runs diff clean and flag upstream changes.
+5. `npm run build` and smoke-test via `monkr render`.
 
 ## Other official bezels available (not yet integrated)
 
-As of 2026-06-11 the resources page also offers direct-download bezels for:
-Apple TV, Apple Watch Ultra 2 (2024), iPhone 17, iPhone 16, iPad Pro (M5),
-iPad Air (M4), iPad (A16), iPad mini (A17 Pro), MacBook Pro (M5),
-MacBook Air (M5), MacBook Neo, iMac (M4), and Studio Displays — candidates
-for replacing Monkr's current third-party iPhone/iPad/Mac frame art.
+As of 2026-06-11 the resources page also offers (run
+`npm run sync-bezels -- --dry-run` for the live list): Apple TV,
+Apple Watch Ultra 2 (2024), iPhone 16, iPad Air (M4), iPad (A16),
+iPad mini (A17 Pro), MacBook Pro (M5), MacBook Air (M5), MacBook Neo, and
+Studio Displays — candidates for replacing Monkr's current third-party
+iPhone/iPad/Mac frame art (the sync run prints the exact overlap report).
+Studio Displays is a new device class with no rocket `DISPLAY_FOR` → ASC
+display-type mapping yet.
 
 ## License
 
