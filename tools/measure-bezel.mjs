@@ -16,6 +16,7 @@
 // Usage: node tools/measure-bezel.mjs <file.png> [more.png ...] [--json]
 import { readFileSync } from 'node:fs';
 import { inflateSync } from 'node:zlib';
+import { pathToFileURL } from 'node:url';
 
 function decodePNG(buf) {
 	if (buf.readUInt32BE(0) !== 0x89504e47) throw new Error('not a PNG');
@@ -147,34 +148,61 @@ export function measure(file, { thresh = 8 } = {}) {
 	if (!best) throw new Error('no enclosed transparent cutout found');
 	const { t, b, l, r } = best;
 	const w = r - l + 1, h = b - t + 1;
-	// Corner radius: circle-fit the top-left corner of the cutout. For each
-	// row dy below the top, the left inset i(dy) of the cutout run obeys
-	// (R−i)² + (R−dy)² = R²  →  R = i + dy + √(2·i·dy). Take the median over
-	// rows still on the curve (i > 0). Scan only pixels that belong to the
-	// cutout component so page transparency outside the frame is ignored.
-	const fits = [];
-	for (let dy = 0; dy <= Math.min(Math.floor(h / 2), 600); dy++) {
-		const y = t + dy;
-		let first = -1;
-		for (let x = l; x <= r; x++) {
-			if (comp[y * width + x] === bestId) { first = x; break; }
+	// Corner radius: circle-fit each corner of the cutout. For each row dy
+	// inward from the corner's horizontal edge, the inset i(dy) of the cutout
+	// run obeys (R−i)² + (R−dy)² = R²  →  R = i + dy + √(2·i·dy). Take the
+	// median over rows still on the curve (i > 0). Scan only pixels that
+	// belong to the cutout component so page transparency outside the frame
+	// is ignored.
+	const isCut = (x, y) => comp[y * width + x] === bestId;
+	const fitCorner = (fromTop, fromLeft) => {
+		const fits = [];
+		for (let dy = 0; dy <= Math.min(Math.floor(h / 2), 600); dy++) {
+			const y = fromTop ? t + dy : b - dy;
+			let edge = -1;
+			if (fromLeft) {
+				for (let x = l; x <= r; x++) if (isCut(x, y)) { edge = x; break; }
+			} else {
+				for (let x = r; x >= l; x--) if (isCut(x, y)) { edge = x; break; }
+			}
+			if (edge < 0) continue;
+			const i = fromLeft ? edge - l : r - edge;
+			if (i <= 0) break; // reached the straight section
+			fits.push(i + dy + Math.sqrt(2 * i * dy));
 		}
-		if (first < 0) continue;
-		const i = first - l;
-		if (i <= 0) break; // reached the straight section
-		fits.push(i + dy + Math.sqrt(2 * i * dy));
-	}
-	fits.sort((a, b) => a - b);
-	const radius = fits.length ? Math.round(fits[Math.floor(fits.length / 2)]) : 0;
+		fits.sort((a, b2) => a - b2);
+		return {
+			radius: fits.length ? Math.round(fits[Math.floor(fits.length / 2)]) : 0,
+			rows: fits.length
+		};
+	};
+	const tl = fitCorner(true, true), tr = fitCorner(true, false);
+	const bl = fitCorner(false, true), br = fitCorner(false, false);
+	const corners = { tl: tl.radius, tr: tr.radius, bl: bl.radius, br: br.radius };
+	// Rectness: compare the cutout pixel count with the area of a rounded
+	// rect at the fitted corner radii. A big deviation means the cutout is
+	// not a (rounded) rect — callers should fall back to a bbox mask.
+	const deficit = (corners.tl ** 2 + corners.tr ** 2 + corners.bl ** 2 + corners.br ** 2) * (1 - Math.PI / 4);
+	const areaRatio = best.n / (w * h - deficit);
 	return {
 		file, pngW: width, pngH: height,
 		content: { x: cL, y: cT, w: cR - cL + 1, h: cB - cT + 1 },
 		cutout: { x: l, y: t, w, h, area: best.n },
-		cornerRadius: radius,
-		radiusFitRows: fits.length
+		cornerRadius: corners.tl,
+		corners,
+		areaRatio: Math.round(areaRatio * 10000) / 10000,
+		radiusFitRows: tl.rows
 	};
 }
 
+// CLI entrypoint (skipped when imported as a library, e.g. by sync-bezels.mjs)
+const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (!isMain) {
+	// library use — no CLI
+} else {
+	main();
+}
+function main() {
 const args = process.argv.slice(2).filter((a) => a !== '--json');
 const asJson = process.argv.includes('--json');
 if (args.length === 0) {
@@ -189,5 +217,6 @@ else
   png:     ${m.pngW}×${m.pngH}
   content: ${m.content.w}×${m.content.h} @ (${m.content.x},${m.content.y})
   cutout:  ${m.cutout.w}×${m.cutout.h} @ (${m.cutout.x},${m.cutout.y})
-  corner radius ≈ ${m.cornerRadius}px`);
+  corners  tl ${m.corners.tl} / tr ${m.corners.tr} / bl ${m.corners.bl} / br ${m.corners.br}px (area ratio ${m.areaRatio})`);
 	}
+}
