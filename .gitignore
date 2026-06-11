@@ -21,3 +21,6 @@ Thumbs.db
 # Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Apple bezel staging area (see docs/APPLE-BEZELS.md)
+static/devices/_incoming/

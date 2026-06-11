@@ -55,7 +55,7 @@ Pixel-perfect frames for the devices people actually use:
 | **iPad** | Pro 13", Pro 11", Air, Mini |
 | **Mac** | MacBook Pro 16", MacBook Air M2, MacBook Air 13" |
 | **Desktop** | iMac 24", iMac Pro, Pro Display XDR |
-| **Watch** | Apple Watch Series 10 46mm, Apple Watch Ultra 49mm |
+| **Watch** | Apple Watch Series 11 46mm, Apple Watch Ultra 3 49mm — official Apple product bezels (see [docs/APPLE-BEZELS.md](docs/APPLE-BEZELS.md)) |
 | **Other** | Apple TV 4K, Flat Screen TV, Browser (Light & Dark) |
 
 Each device includes multiple color variants and can be freely positioned, scaled, rotated, and tilted in 3D.
