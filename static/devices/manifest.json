@@ -1,0 +1,698 @@
+{
+	"version": 1,
+	"updatedAt": "2026-06-11T17:56:14.612Z",
+	"sources": {
+		"Bezel-Apple-Watch-Series-11-2025.dmg": {
+			"name": "Apple Watch Series 11",
+			"url": "https://devimages-cdn.apple.com/design/resources/download/Bezel-Apple-Watch-Series-11-2025.dmg",
+			"sha256": "f02c24fcf41607997a697bfa80c54b638ec23b35a7bc19f4406a56cefd2db529",
+			"size": 357953080,
+			"fetchedAt": "2026-06-11T00:00:00.000Z",
+			"deviceClass": "watch",
+			"status": "curated",
+			"managed": true,
+			"notes": "Hand-imported (commit 4d7702c) under the legacy slug apple-watch-series-10-46mm with curated color picks — see docs/APPLE-BEZELS.md. sync-bezels leaves curated sources untouched.",
+			"slugs": {
+				"apple-watch-series-10-46mm": {
+					"colors": [
+						"jet-black",
+						"rose-gold",
+						"silver",
+						"space-gray",
+						"titanium-gold",
+						"titanium-natural",
+						"titanium-slate"
+					],
+					"shadowed": false,
+					"assets": true
+				}
+			}
+		},
+		"Bezel-Apple-Watch-Ultra-3-2025.dmg": {
+			"name": "Apple Watch Ultra 3 (2025)",
+			"url": "https://devimages-cdn.apple.com/design/resources/download/Bezel-Apple-Watch-Ultra-3-2025.dmg",
+			"sha256": "c9f9cee1f4f2b40b69ad79473129824df6ec7a70d5e10d10505700d1b3cb6826",
+			"size": 329151217,
+			"fetchedAt": "2026-06-11T00:00:00.000Z",
+			"deviceClass": "watch",
+			"status": "curated",
+			"managed": true,
+			"notes": "Hand-imported (commit 4d7702c) under the legacy slug apple-watch-ultra-49mm with curated color picks — see docs/APPLE-BEZELS.md. sync-bezels leaves curated sources untouched.",
+			"slugs": {
+				"apple-watch-ultra-49mm": {
+					"colors": [
+						"natural-titanium",
+						"black-titanium",
+						"natural-alpine-loop",
+						"black-trail-loop"
+					],
+					"shadowed": false,
+					"assets": true
+				}
+			}
+		},
+		"Bezel-iMac-M4.dmg": {
+			"name": "iMac",
+			"url": "https://devimages-cdn.apple.com/design/resources/download/Bezel-iMac-M4.dmg",
+			"sha256": "ea30c9779cdb031164829bad3671b7ea96ab89cf2c6311a901e9eb062b884b50",
+			"size": 95428207,
+			"fetchedAt": "2026-06-11T17:54:45.586Z",
+			"deviceClass": "mac",
+			"status": "imported",
+			"managed": true,
+			"slugs": {
+				"imac-m4-24": {
+					"colors": [
+						"blue",
+						"green",
+						"orange",
+						"pink",
+						"purple",
+						"silver",
+						"yellow"
+					],
+					"appleFiles": {
+						"blue": "iMac M4 24-inch Blue.png",
+						"green": "iMac M4 24-inch Green.png",
+						"orange": "iMac M4 24-inch Orange.png",
+						"pink": "iMac M4 24-inch Pink.png",
+						"purple": "iMac M4 24-inch Purple.png",
+						"silver": "iMac M4 24-inch Silver.png",
+						"yellow": "iMac M4 24-inch Yellow.png"
+					},
+					"shadowed": false,
+					"assets": true,
+					"measured": {
+						"pngW": 4760,
+						"pngH": 4050,
+						"cutout": {
+							"x": 140,
+							"y": 150,
+							"w": 4480,
+							"h": 2520,
+							"area": 11289600
+						},
+						"corners": {
+							"tl": 0,
+							"tr": 0,
+							"bl": 0,
+							"br": 0
+						},
+						"areaRatio": 1
+					},
+					"entry": {
+						"id": "imac-m4-24",
+						"name": "iMac M4 24-inch",
+						"category": "laptop",
+						"brand": "Apple",
+						"slug": "imac-m4-24",
+						"pngW": 4760,
+						"pngH": 4050,
+						"svgW": 4480,
+						"svgH": 2520,
+						"year": 2026,
+						"screenTop": 3.704,
+						"screenLeft": 2.941,
+						"notch": "none",
+						"colors": [
+							{
+								"id": "blue",
+								"name": "Blue",
+								"slug": "blue"
+							},
+							{
+								"id": "green",
+								"name": "Green",
+								"slug": "green"
+							},
+							{
+								"id": "orange",
+								"name": "Orange",
+								"slug": "orange"
+							},
+							{
+								"id": "pink",
+								"name": "Pink",
+								"slug": "pink"
+							},
+							{
+								"id": "purple",
+								"name": "Purple",
+								"slug": "purple"
+							},
+							{
+								"id": "silver",
+								"name": "Silver",
+								"slug": "silver"
+							},
+							{
+								"id": "yellow",
+								"name": "Yellow",
+								"slug": "yellow"
+							}
+						]
+					}
+				}
+			}
+		},
+		"Bezel-iPad-Pro-(M5).dmg": {
+			"name": "iPad Pro (M5)",
+			"url": "https://devimages-cdn.apple.com/design/resources/download/Bezel-iPad-Pro-(M5).dmg",
+			"sha256": "ebde5f7249d416ad83d2d14881c31a0ae3ed8343643d26a0fbf61195aeb06f0f",
+			"size": 6787021,
+			"fetchedAt": "2026-06-11T17:54:49.652Z",
+			"deviceClass": "ipad",
+			"status": "imported",
+			"managed": true,
+			"slugs": {
+				"ipad-pro-m5-11": {
+					"colors": [
+						"silver",
+						"space-black"
+					],
+					"appleFiles": {
+						"silver": "iPad Pro (M5) 11\" - Silver - Portrait.png",
+						"space-black": "iPad Pro (M5) 11\" - Space Black - Portrait.png"
+					},
+					"shadowed": false,
+					"assets": true,
+					"measured": {
+						"pngW": 1880,
+						"pngH": 2640,
+						"cutout": {
+							"x": 106,
+							"y": 110,
+							"w": 1668,
+							"h": 2420,
+							"area": 4033227
+						},
+						"corners": {
+							"tl": 61,
+							"tr": 61,
+							"bl": 61,
+							"br": 61
+						},
+						"areaRatio": 1
+					},
+					"entry": {
+						"id": "ipad-pro-m5-11",
+						"name": "iPad Pro (M5) 11\"",
+						"category": "tablet",
+						"brand": "Apple",
+						"slug": "ipad-pro-m5-11",
+						"pngW": 1880,
+						"pngH": 2640,
+						"svgW": 1668,
+						"svgH": 2420,
+						"year": 2026,
+						"screenTop": 4.167,
+						"screenLeft": 5.638,
+						"notch": "none",
+						"colors": [
+							{
+								"id": "silver",
+								"name": "Silver",
+								"slug": "silver"
+							},
+							{
+								"id": "space-black",
+								"name": "Space Black",
+								"slug": "space-black"
+							}
+						]
+					}
+				},
+				"ipad-pro-m5-13": {
+					"colors": [
+						"silver",
+						"space-black"
+					],
+					"appleFiles": {
+						"silver": "iPad Pro (M5) 13\" - Silver - Portrait.png",
+						"space-black": "iPad Pro (M5) 13\" - Space Black - Portrait.png"
+					},
+					"shadowed": false,
+					"assets": true,
+					"measured": {
+						"pngW": 2300,
+						"pngH": 3000,
+						"cutout": {
+							"x": 118,
+							"y": 124,
+							"w": 2064,
+							"h": 2752,
+							"area": 5676832
+						},
+						"corners": {
+							"tl": 61,
+							"tr": 61,
+							"bl": 61,
+							"br": 61
+						},
+						"areaRatio": 1
+					},
+					"entry": {
+						"id": "ipad-pro-m5-13",
+						"name": "iPad Pro (M5) 13\"",
+						"category": "tablet",
+						"brand": "Apple",
+						"slug": "ipad-pro-m5-13",
+						"pngW": 2300,
+						"pngH": 3000,
+						"svgW": 2064,
+						"svgH": 2752,
+						"year": 2026,
+						"screenTop": 4.133,
+						"screenLeft": 5.13,
+						"notch": "none",
+						"colors": [
+							{
+								"id": "silver",
+								"name": "Silver",
+								"slug": "silver"
+							},
+							{
+								"id": "space-black",
+								"name": "Space Black",
+								"slug": "space-black"
+							}
+						]
+					}
+				}
+			}
+		},
+		"Bezel-iPhone-17.dmg": {
+			"name": "iPhone 17",
+			"url": "https://devimages-cdn.apple.com/design/resources/download/Bezel-iPhone-17.dmg",
+			"sha256": "d82865f755b94576a61ee29e306193de600b6a4aba81315f6651fd4b652ce222",
+			"size": 265205982,
+			"fetchedAt": "2026-06-11T17:54:53.784Z",
+			"deviceClass": "iphone",
+			"status": "imported",
+			"managed": true,
+			"slugs": {
+				"iphone-17": {
+					"colors": [
+						"black",
+						"lavender",
+						"mist-blue",
+						"sage",
+						"white"
+					],
+					"appleFiles": {
+						"black": "iPhone 17/iPhone 17 - Black - Portrait.png",
+						"lavender": "iPhone 17/iPhone 17 - Lavender - Portrait.png",
+						"mist-blue": "iPhone 17/iPhone 17 - Mist Blue - Portrait.png",
+						"sage": "iPhone 17/iPhone 17 - Sage - Portrait.png",
+						"white": "iPhone 17/iPhone 17 - White - Portrait.png"
+					},
+					"shadowed": true,
+					"shadowedBy": "iphone-17",
+					"assets": false,
+					"measured": {
+						"pngW": 1350,
+						"pngH": 2760,
+						"cutout": {
+							"x": 72,
+							"y": 69,
+							"w": 1206,
+							"h": 2622,
+							"area": 3091302
+						},
+						"corners": {
+							"tl": 198,
+							"tr": 197,
+							"bl": 198,
+							"br": 197
+						},
+						"areaRatio": 0.9881
+					},
+					"entry": {
+						"id": "iphone-17",
+						"name": "iPhone 17",
+						"category": "phone",
+						"brand": "Apple",
+						"slug": "iphone-17",
+						"pngW": 1350,
+						"pngH": 2760,
+						"svgW": 1206,
+						"svgH": 2622,
+						"year": 2026,
+						"screenTop": 2.5,
+						"screenLeft": 5.333,
+						"notch": "dynamic-island",
+						"colors": [
+							{
+								"id": "black",
+								"name": "Black",
+								"slug": "black"
+							},
+							{
+								"id": "lavender",
+								"name": "Lavender",
+								"slug": "lavender"
+							},
+							{
+								"id": "mist-blue",
+								"name": "Mist Blue",
+								"slug": "mist-blue"
+							},
+							{
+								"id": "sage",
+								"name": "Sage",
+								"slug": "sage"
+							},
+							{
+								"id": "white",
+								"name": "White",
+								"slug": "white"
+							}
+						]
+					}
+				},
+				"iphone-17-pro": {
+					"colors": [
+						"cosmic-orange",
+						"deep-blue",
+						"silver"
+					],
+					"appleFiles": {
+						"cosmic-orange": "iPhone 17 Pro/iPhone 17 Pro - Cosmic Orange - Portrait.png",
+						"deep-blue": "iPhone 17 Pro/iPhone 17 Pro - Deep Blue - Portrait.png",
+						"silver": "iPhone 17 Pro/iPhone 17 Pro - Silver - Portrait.png"
+					},
+					"shadowed": true,
+					"shadowedBy": "iphone-17-pro",
+					"assets": false,
+					"measured": {
+						"pngW": 1350,
+						"pngH": 2760,
+						"cutout": {
+							"x": 72,
+							"y": 69,
+							"w": 1206,
+							"h": 2622,
+							"area": 3091733
+						},
+						"corners": {
+							"tl": 197,
+							"tr": 196,
+							"bl": 196,
+							"br": 195
+						},
+						"areaRatio": 0.988
+					},
+					"entry": {
+						"id": "iphone-17-pro",
+						"name": "iPhone 17 Pro",
+						"category": "phone",
+						"brand": "Apple",
+						"slug": "iphone-17-pro",
+						"pngW": 1350,
+						"pngH": 2760,
+						"svgW": 1206,
+						"svgH": 2622,
+						"year": 2026,
+						"screenTop": 2.5,
+						"screenLeft": 5.333,
+						"notch": "dynamic-island",
+						"colors": [
+							{
+								"id": "cosmic-orange",
+								"name": "Cosmic Orange",
+								"slug": "cosmic-orange"
+							},
+							{
+								"id": "deep-blue",
+								"name": "Deep Blue",
+								"slug": "deep-blue"
+							},
+							{
+								"id": "silver",
+								"name": "Silver",
+								"slug": "silver"
+							}
+						]
+					}
+				},
+				"iphone-17-pro-max": {
+					"colors": [
+						"cosmic-orange",
+						"deep-blue",
+						"silver"
+					],
+					"appleFiles": {
+						"cosmic-orange": "iPhone 17 Pro Max/iPhone 17 Pro Max - Cosmic Orange - Portrait.png",
+						"deep-blue": "iPhone 17 Pro Max/iPhone 17 Pro Max - Deep Blue - Portrait.png",
+						"silver": "iPhone 17 Pro Max/iPhone 17 Pro Max - Silver - Portrait.png"
+					},
+					"shadowed": true,
+					"shadowedBy": "iphone-17-pro-max",
+					"assets": false,
+					"measured": {
+						"pngW": 1470,
+						"pngH": 3000,
+						"cutout": {
+							"x": 75,
+							"y": 66,
+							"w": 1320,
+							"h": 2868,
+							"area": 3714601
+						},
+						"corners": {
+							"tl": 199,
+							"tr": 197,
+							"bl": 198,
+							"br": 197
+						},
+						"areaRatio": 0.99
+					},
+					"entry": {
+						"id": "iphone-17-pro-max",
+						"name": "iPhone 17 Pro Max",
+						"category": "phone",
+						"brand": "Apple",
+						"slug": "iphone-17-pro-max",
+						"pngW": 1470,
+						"pngH": 3000,
+						"svgW": 1320,
+						"svgH": 2868,
+						"year": 2026,
+						"screenTop": 2.2,
+						"screenLeft": 5.102,
+						"notch": "dynamic-island",
+						"colors": [
+							{
+								"id": "cosmic-orange",
+								"name": "Cosmic Orange",
+								"slug": "cosmic-orange"
+							},
+							{
+								"id": "deep-blue",
+								"name": "Deep Blue",
+								"slug": "deep-blue"
+							},
+							{
+								"id": "silver",
+								"name": "Silver",
+								"slug": "silver"
+							}
+						]
+					}
+				},
+				"iphone-air": {
+					"colors": [
+						"cloud-white",
+						"light-gold",
+						"sky-blue",
+						"space-black"
+					],
+					"appleFiles": {
+						"cloud-white": "iPhone Air/iPhone Air - Cloud White - Portrait.png",
+						"light-gold": "iPhone Air/iPhone Air - Light Gold - Portrait.png",
+						"sky-blue": "iPhone Air/iPhone Air - Sky Blue - Portrait.png",
+						"space-black": "iPhone Air/iPhone Air - Space Black - Portrait.png"
+					},
+					"shadowed": true,
+					"shadowedBy": "iphone-17-air",
+					"assets": false,
+					"measured": {
+						"pngW": 1380,
+						"pngH": 2880,
+						"cutout": {
+							"x": 60,
+							"y": 72,
+							"w": 1260,
+							"h": 2736,
+							"area": 3376767
+						},
+						"corners": {
+							"tl": 197,
+							"tr": 196,
+							"bl": 196,
+							"br": 195
+						},
+						"areaRatio": 0.989
+					},
+					"entry": {
+						"id": "iphone-air",
+						"name": "iPhone Air",
+						"category": "phone",
+						"brand": "Apple",
+						"slug": "iphone-air",
+						"pngW": 1380,
+						"pngH": 2880,
+						"svgW": 1260,
+						"svgH": 2736,
+						"year": 2026,
+						"screenTop": 2.5,
+						"screenLeft": 4.348,
+						"notch": "dynamic-island",
+						"colors": [
+							{
+								"id": "cloud-white",
+								"name": "Cloud White",
+								"slug": "cloud-white"
+							},
+							{
+								"id": "light-gold",
+								"name": "Light Gold",
+								"slug": "light-gold"
+							},
+							{
+								"id": "sky-blue",
+								"name": "Sky Blue",
+								"slug": "sky-blue"
+							},
+							{
+								"id": "space-black",
+								"name": "Space Black",
+								"slug": "space-black"
+							}
+						]
+					}
+				}
+			}
+		},
+		"Bezel-Apple-TV.dmg": {
+			"name": "Apple TV",
+			"url": "https://devimages-cdn.apple.com/design/resources/download/Bezel-Apple-TV.dmg",
+			"sha256": null,
+			"size": null,
+			"fetchedAt": null,
+			"discoveredAt": "2026-06-11T17:54:53.784Z",
+			"deviceClass": "tv",
+			"status": "available",
+			"managed": false,
+			"slugs": {}
+		},
+		"Bezel-Apple-Watch-Ultra-2-2024.dmg": {
+			"name": "Apple Watch Ultra 2 (2024)",
+			"url": "https://devimages-cdn.apple.com/design/resources/download/Bezel-Apple-Watch-Ultra-2-2024.dmg",
+			"sha256": null,
+			"size": null,
+			"fetchedAt": null,
+			"discoveredAt": "2026-06-11T17:54:53.784Z",
+			"deviceClass": "watch",
+			"status": "available",
+			"managed": false,
+			"slugs": {}
+		},
+		"Bezel-iPad-(A16).dmg": {
+			"name": "iPad (A16)",
+			"url": "https://devimages-cdn.apple.com/design/resources/download/Bezel-iPad-(A16).dmg",
+			"sha256": null,
+			"size": null,
+			"fetchedAt": null,
+			"discoveredAt": "2026-06-11T17:54:53.784Z",
+			"deviceClass": "ipad",
+			"status": "available",
+			"managed": false,
+			"slugs": {}
+		},
+		"Bezel-iPad-Air-(M4).dmg": {
+			"name": "iPad Air (M4)",
+			"url": "https://devimages-cdn.apple.com/design/resources/download/Bezel-iPad-Air-(M4).dmg",
+			"sha256": null,
+			"size": null,
+			"fetchedAt": null,
+			"discoveredAt": "2026-06-11T17:54:53.785Z",
+			"deviceClass": "ipad",
+			"status": "available",
+			"managed": false,
+			"slugs": {}
+		},
+		"Bezel-iPad-mini-(A17-Pro).dmg": {
+			"name": "iPad mini (A17 Pro)",
+			"url": "https://devimages-cdn.apple.com/design/resources/download/Bezel-iPad-mini-(A17-Pro).dmg",
+			"sha256": null,
+			"size": null,
+			"fetchedAt": null,
+			"discoveredAt": "2026-06-11T17:54:53.785Z",
+			"deviceClass": "ipad",
+			"status": "available",
+			"managed": false,
+			"slugs": {}
+		},
+		"Bezel-iPhone-16.dmg": {
+			"name": "iPhone 16",
+			"url": "https://devimages-cdn.apple.com/design/resources/download/Bezel-iPhone-16.dmg",
+			"sha256": null,
+			"size": null,
+			"fetchedAt": null,
+			"discoveredAt": "2026-06-11T17:54:53.785Z",
+			"deviceClass": "iphone",
+			"status": "available",
+			"managed": false,
+			"slugs": {}
+		},
+		"Bezel-MacBook-Air-M5.dmg": {
+			"name": "MacBook Air M5",
+			"url": "https://devimages-cdn.apple.com/design/resources/download/Bezel-MacBook-Air-M5.dmg",
+			"sha256": null,
+			"size": null,
+			"fetchedAt": null,
+			"discoveredAt": "2026-06-11T17:54:53.785Z",
+			"deviceClass": "mac",
+			"status": "available",
+			"managed": false,
+			"slugs": {}
+		},
+		"Bezel-MacBook-Neo.dmg": {
+			"name": "MacBook Neo",
+			"url": "https://devimages-cdn.apple.com/design/resources/download/Bezel-MacBook-Neo.dmg",
+			"sha256": null,
+			"size": null,
+			"fetchedAt": null,
+			"discoveredAt": "2026-06-11T17:54:53.785Z",
+			"deviceClass": "mac",
+			"status": "available",
+			"managed": false,
+			"slugs": {}
+		},
+		"Bezel-MacBook-Pro-M5.dmg": {
+			"name": "MacBook Pro M5",
+			"url": "https://devimages-cdn.apple.com/design/resources/download/Bezel-MacBook-Pro-M5.dmg",
+			"sha256": null,
+			"size": null,
+			"fetchedAt": null,
+			"discoveredAt": "2026-06-11T17:54:53.785Z",
+			"deviceClass": "mac",
+			"status": "available",
+			"managed": false,
+			"slugs": {}
+		},
+		"Bezel-Studio-Displays.dmg": {
+			"name": "Studio Displays",
+			"url": "https://devimages-cdn.apple.com/design/resources/download/Bezel-Studio-Displays.dmg",
+			"sha256": null,
+			"size": null,
+			"fetchedAt": null,
+			"discoveredAt": "2026-06-11T17:54:53.785Z",
+			"deviceClass": "display",
+			"status": "available",
+			"managed": false,
+			"slugs": {}
+		}
+	}
+}
