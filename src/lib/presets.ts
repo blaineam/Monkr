@@ -6,6 +6,7 @@ export const canvasPresets: CanvasPreset[] = [
 	{ name: 'Portrait 9:16', width: 1080, height: 1920, category: 'General' },
 	{ name: 'Square 1:1', width: 1080, height: 1080, category: 'General' },
 	{ name: 'Ultrawide', width: 2560, height: 1080, category: 'General' },
+	{ name: 'Studio Display', width: 2560, height: 1440, category: 'General' },
 	// Social
 	{ name: 'Dribbble', width: 1600, height: 1200, category: 'Social' },
 	{ name: 'Twitter Post', width: 1600, height: 900, category: 'Social' },

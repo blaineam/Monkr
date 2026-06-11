@@ -83,7 +83,7 @@ export function classDefaults(deviceClass) {
 		case 'iphone': return { category: 'phone', notch: 'dynamic-island' };
 		case 'ipad': return { category: 'tablet', notch: 'none' };
 		case 'mac': return { category: 'laptop', notch: 'none' };
-		case 'display': return { category: 'laptop', notch: 'none' };
+		case 'display': return { category: 'other', notch: 'none' }; // standalone displays → "Misc" tab
 		case 'tv': return { category: 'tv', notch: 'none' };
 		case 'watch': return { category: 'watch', notch: 'none' };
 		default: return { category: 'laptop', notch: 'none' };

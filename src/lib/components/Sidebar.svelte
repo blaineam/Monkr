@@ -6,6 +6,7 @@
 		Globe,
 		Tv,
 		Watch,
+		Monitor,
 		Palette,
 		SlidersHorizontal,
 		ImageDown,
@@ -267,7 +268,7 @@
 	let activePresetCategory = $state('General');
 
 	// Device category for the device picker within a selected object
-	type DeviceCategory = 'phone' | 'tablet' | 'laptop' | 'browser' | 'tv' | 'watch';
+	type DeviceCategory = 'phone' | 'tablet' | 'laptop' | 'browser' | 'tv' | 'watch' | 'other';
 	let activeDeviceCategory = $state<DeviceCategory>('phone');
 	let filteredDevices = $derived(
 		deviceRegistry.devices.filter((d) => d.category === activeDeviceCategory)
@@ -455,18 +456,20 @@
 						<!-- Device picker -->
 						<div class="space-y-2">
 							<span class="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">Device</span>
-							<div class="grid grid-cols-6 gap-0.5 rounded-lg bg-zinc-800/80 p-0.5">
+							<div class="grid grid-cols-7 gap-0.5 rounded-lg bg-zinc-800/80 p-0.5">
 								{#each [
-									{ cat: 'phone', icon: Smartphone },
-									{ cat: 'tablet', icon: Tablet },
-									{ cat: 'laptop', icon: Laptop },
-									{ cat: 'watch', icon: Watch },
-									{ cat: 'tv', icon: Tv },
-									{ cat: 'browser', icon: Globe }
-								] as { cat, icon: Icon }}
+									{ cat: 'phone', icon: Smartphone, label: 'Phone' },
+									{ cat: 'tablet', icon: Tablet, label: 'Tablet' },
+									{ cat: 'laptop', icon: Laptop, label: 'Laptop' },
+									{ cat: 'watch', icon: Watch, label: 'Watch' },
+									{ cat: 'tv', icon: Tv, label: 'TV' },
+									{ cat: 'browser', icon: Globe, label: 'Browser' },
+									{ cat: 'other', icon: Monitor, label: 'Misc' }
+								] as { cat, icon: Icon, label }}
 									<button
 										class="flex items-center justify-center rounded-md py-1.5 transition-colors
 											{activeDeviceCategory === cat ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-400'}"
+										title={label}
 										onclick={() => {
 											activeDeviceCategory = cat as DeviceCategory;
 											const devs = deviceRegistry.devices.filter((d) => d.category === cat);

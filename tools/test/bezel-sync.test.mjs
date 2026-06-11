@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { deflateSync } from 'node:zlib';
 
 import {
-	classifyDevice, diffManifest, groupVariants, maskSVG,
+	classDefaults, classifyDevice, diffManifest, groupVariants, maskSVG,
 	overlapReport, parseBezelLinks, parseVariants, slugify, yearFromFile
 } from '../lib/bezel-sync.mjs';
 import { measure } from '../measure-bezel.mjs';
@@ -51,6 +51,16 @@ test('classifyDevice', () => {
 	assert.equal(classifyDevice('Bezel-Apple-Watch-Ultra-3-2025.dmg'), 'watch');
 	assert.equal(classifyDevice('macbook-pro-16'), 'mac'); // hand-tuned slug form
 	assert.equal(classifyDevice('pixel-7-pro'), 'unknown');
+});
+
+test('classDefaults maps device classes to registry categories', () => {
+	assert.equal(classDefaults('iphone').category, 'phone');
+	assert.equal(classDefaults('ipad').category, 'tablet');
+	assert.equal(classDefaults('mac').category, 'laptop');
+	assert.equal(classDefaults('display').category, 'other'); // Studio Display → "Misc" tab
+	assert.equal(classDefaults('tv').category, 'tv');
+	assert.equal(classDefaults('watch').category, 'watch');
+	assert.equal(classDefaults('unknown').category, 'laptop');
 });
 
 // ── slugs ─────────────────────────────────────────────────────────────────

@@ -15,7 +15,7 @@ export interface DeviceColor {
 export interface DeviceMeta {
 	id: string;
 	name: string;
-	category: 'phone' | 'tablet' | 'laptop' | 'browser' | 'tv' | 'watch';
+	category: 'phone' | 'tablet' | 'laptop' | 'browser' | 'tv' | 'watch' | 'other';
 	brand: string;
 	slug: string;
 	pngW: number;
