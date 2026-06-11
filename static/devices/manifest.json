@@ -1,6 +1,6 @@
 {
 	"version": 1,
-	"updatedAt": "2026-06-11T17:56:14.612Z",
+	"updatedAt": "2026-06-11T18:11:13.161Z",
 	"sources": {
 		"Bezel-Apple-Watch-Series-11-2025.dmg": {
 			"name": "Apple Watch Series 11",
@@ -685,14 +685,85 @@
 		"Bezel-Studio-Displays.dmg": {
 			"name": "Studio Displays",
 			"url": "https://devimages-cdn.apple.com/design/resources/download/Bezel-Studio-Displays.dmg",
-			"sha256": null,
-			"size": null,
-			"fetchedAt": null,
-			"discoveredAt": "2026-06-11T17:54:53.785Z",
+			"sha256": "43f5e6b032d32818625699ccae1d111d05883d061ff2f2f870b23a96baff0215",
+			"size": 56119732,
+			"fetchedAt": "2026-06-11T18:11:13.161Z",
 			"deviceClass": "display",
-			"status": "available",
-			"managed": false,
-			"slugs": {}
+			"status": "imported",
+			"managed": true,
+			"slugs": {
+				"studio-display": {
+					"colors": [
+						"2026-on-dark-background",
+						"2026-on-light-background",
+						"xdr-2026-on-dark-background",
+						"xdr-2026-on-light-background"
+					],
+					"appleFiles": {
+						"2026-on-dark-background": "Studio Display 2026 On Dark Background.png",
+						"2026-on-light-background": "Studio Display 2026 On Light Background.png",
+						"xdr-2026-on-dark-background": "Studio Display XDR 2026 On Dark Background.png",
+						"xdr-2026-on-light-background": "Studio Display XDR 2026 On Light Background.png"
+					},
+					"shadowed": false,
+					"assets": true,
+					"measured": {
+						"pngW": 5400,
+						"pngH": 4160,
+						"cutout": {
+							"x": 140,
+							"y": 140,
+							"w": 5120,
+							"h": 2880,
+							"area": 14745600
+						},
+						"corners": {
+							"tl": 0,
+							"tr": 0,
+							"bl": 0,
+							"br": 0
+						},
+						"areaRatio": 1
+					},
+					"entry": {
+						"id": "studio-display",
+						"name": "Studio Display",
+						"category": "other",
+						"brand": "Apple",
+						"slug": "studio-display",
+						"pngW": 5400,
+						"pngH": 4160,
+						"svgW": 5120,
+						"svgH": 2880,
+						"year": 2026,
+						"screenTop": 3.365,
+						"screenLeft": 2.593,
+						"notch": "none",
+						"colors": [
+							{
+								"id": "2026-on-dark-background",
+								"name": "2026 On Dark Background",
+								"slug": "2026-on-dark-background"
+							},
+							{
+								"id": "2026-on-light-background",
+								"name": "2026 On Light Background",
+								"slug": "2026-on-light-background"
+							},
+							{
+								"id": "xdr-2026-on-dark-background",
+								"name": "XDR 2026 On Dark Background",
+								"slug": "xdr-2026-on-dark-background"
+							},
+							{
+								"id": "xdr-2026-on-light-background",
+								"name": "XDR 2026 On Light Background",
+								"slug": "xdr-2026-on-light-background"
+							}
+						]
+					}
+				}
+			}
 		}
 	}
 }

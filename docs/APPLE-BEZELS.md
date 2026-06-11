@@ -100,9 +100,16 @@ Synced by the tool (geometry in `static/devices/manifest.json` and
 | `ipad-pro-m5-11` | Bezel-iPad-Pro-(M5).dmg | 1880×2640 | 1668×2420 @ (106,110) | 61 px |
 | `ipad-pro-m5-13` | Bezel-iPad-Pro-(M5).dmg | 2300×3000 | 2064×2752 @ (118,124) | 61 px |
 | `imac-m4-24` | Bezel-iMac-M4.dmg | 4760×4050 | 4480×2520 @ (140,150) | 0 px (square) |
+| `studio-display` | Bezel-Studio-Displays.dmg | 5400×4160 | 5120×2880 @ (140,140) | 0 px (square) |
 
 The iPad Pro cutouts are exactly the ASC screenshot sizes (1668×2420 /
-2064×2752); the iMac cutout is the 4.5K panel at 16:9 (4480×2520).
+2064×2752); the iMac cutout is the 4.5K panel at 16:9 (4480×2520); the
+Studio Display cutout is the 27" 5K panel (5120×2880), with the stand
+included in the frame art below it. All four Studio Display PNGs (2026 +
+XDR 2026, each on dark/light background) share identical geometry, so the
+tool groups them as color variants of one `studio-display` model. They are
+marketing frames only — registry category `other` ("Misc" tab), no rocket
+`DISPLAY_FOR` → ASC display-type mapping (the sync run TODOs this; expected).
 `Bezel-iPhone-17.dmg` is also managed, but all four of its models (iPhone 17
 / Pro / Pro Max / Air, cutouts 1206×2622, 1320×2868, 1260×2736 — the exact
 ASC sizes) are *shadowed* by Monkr's existing hand-tuned third-party iPhone
@@ -177,11 +184,9 @@ frames were made):
 As of 2026-06-11 the resources page also offers (run
 `npm run sync-bezels -- --dry-run` for the live list): Apple TV,
 Apple Watch Ultra 2 (2024), iPhone 16, iPad Air (M4), iPad (A16),
-iPad mini (A17 Pro), MacBook Pro (M5), MacBook Air (M5), MacBook Neo, and
-Studio Displays — candidates for replacing Monkr's current third-party
-iPhone/iPad/Mac frame art (the sync run prints the exact overlap report).
-Studio Displays is a new device class with no rocket `DISPLAY_FOR` → ASC
-display-type mapping yet.
+iPad mini (A17 Pro), MacBook Pro (M5), MacBook Air (M5), and MacBook Neo —
+candidates for replacing Monkr's current third-party iPhone/iPad/Mac frame
+art (the sync run prints the exact overlap report).
 
 ## License
 
