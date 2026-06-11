@@ -5,6 +5,7 @@
 		Laptop,
 		Globe,
 		Tv,
+		Watch,
 		Palette,
 		SlidersHorizontal,
 		ImageDown,
@@ -266,7 +267,7 @@
 	let activePresetCategory = $state('General');
 
 	// Device category for the device picker within a selected object
-	type DeviceCategory = 'phone' | 'tablet' | 'laptop' | 'browser' | 'tv';
+	type DeviceCategory = 'phone' | 'tablet' | 'laptop' | 'browser' | 'tv' | 'watch';
 	let activeDeviceCategory = $state<DeviceCategory>('phone');
 	let filteredDevices = $derived(
 		deviceRegistry.devices.filter((d) => d.category === activeDeviceCategory)
@@ -454,11 +455,12 @@
 						<!-- Device picker -->
 						<div class="space-y-2">
 							<span class="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">Device</span>
-							<div class="grid grid-cols-5 gap-0.5 rounded-lg bg-zinc-800/80 p-0.5">
+							<div class="grid grid-cols-6 gap-0.5 rounded-lg bg-zinc-800/80 p-0.5">
 								{#each [
 									{ cat: 'phone', icon: Smartphone },
 									{ cat: 'tablet', icon: Tablet },
 									{ cat: 'laptop', icon: Laptop },
+									{ cat: 'watch', icon: Watch },
 									{ cat: 'tv', icon: Tv },
 									{ cat: 'browser', icon: Globe }
 								] as { cat, icon: Icon }}

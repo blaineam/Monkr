@@ -23,7 +23,8 @@ export const canvasPresets: CanvasPreset[] = [
 	{ name: 'iPad Pro 11"', width: 1668, height: 2388, category: 'App Store' },
 	{ name: 'Mac App', width: 2880, height: 1800, category: 'App Store' },
 	{ name: 'Apple TV', width: 1920, height: 1080, category: 'App Store' },
-	{ name: 'Apple Watch', width: 410, height: 502, category: 'App Store' },
+	{ name: 'Watch 46mm', width: 416, height: 496, category: 'App Store' },
+	{ name: 'Watch Ultra 49mm', width: 410, height: 502, category: 'App Store' },
 	// Play Store
 	{ name: 'Play Phone', width: 1080, height: 1920, category: 'Play Store' },
 	{ name: 'Play Tablet 7"', width: 1200, height: 1920, category: 'Play Store' },
