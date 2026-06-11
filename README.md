@@ -55,6 +55,7 @@ Pixel-perfect frames for the devices people actually use:
 | **iPad** | Pro 13", Pro 11", Air, Mini |
 | **Mac** | MacBook Pro 16", MacBook Air M2, MacBook Air 13" |
 | **Desktop** | iMac 24", iMac Pro, Pro Display XDR |
+| **Watch** | Apple Watch Series 10 46mm, Apple Watch Ultra 49mm |
 | **Other** | Apple TV 4K, Flat Screen TV, Browser (Light & Dark) |
 
 Each device includes multiple color variants and can be freely positioned, scaled, rotated, and tilted in 3D.
@@ -149,7 +150,7 @@ Pre-configured sizes for every platform:
 
 - **General** - 16:9, 9:16, 1:1, Ultrawide
 - **Social** - Dribbble, Twitter, Instagram (Post & Story), LinkedIn, Product Hunt, Open Graph
-- **App Store** - All iPhone sizes, iPad, Mac, Apple TV, Apple Watch
+- **App Store** - All iPhone sizes, iPad, Mac, Apple TV, Apple Watch (46mm & Ultra 49mm)
 - **Google Play** - Phone, Tablet 7" & 10", Feature Graphic
 
 ### Quality of Life
