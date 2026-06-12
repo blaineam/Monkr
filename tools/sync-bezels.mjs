@@ -26,8 +26,11 @@
 // in the manifest with its measurements, but no assets are copied and no
 // registry entry is emitted. The overlap report lists these.
 //
-// All work is synchronous; DMG license prompts are auto-accepted via
-// `yes | hdiutil attach` (see docs/APPLE-BEZELS.md for the license terms).
+// All work is synchronous. DMG extraction is platform-aware: on macOS the
+// DMGs are mounted with hdiutil (license prompts auto-accepted via
+// `yes | hdiutil attach`); elsewhere (Linux CI) they are unpacked with
+// 7-Zip ≥21 (`7zz x`), which reads APFS/HFS+ DMGs directly and never sees
+// the click-through license. See docs/APPLE-BEZELS.md for the license terms.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
@@ -35,12 +38,12 @@ import {
 	rmSync, statSync, writeFileSync
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
 	RESOURCES_URL, ROCKET_COVERED_CLASSES, SLUG_ALIASES,
 	buildEntry, classifyDevice, diffManifest, groupVariants, maskSVG,
-	overlapReport, parseBezelLinks, parseVariants, yearFromFile
+	overlapReport, parseBezelLinks, parseVariants, pngPayload, yearFromFile
 } from './lib/bezel-sync.mjs';
 import { measure } from './measure-bezel.mjs';
 
@@ -108,25 +111,77 @@ function download(url, dest) {
 	execFileSync('curl', ['-fsSL', '-o', dest, url], { stdio: ['ignore', 'inherit', 'inherit'] });
 }
 
-function mountDMG(dmgPath) {
-	const mnt = mkdtempSync(join(tmpdir(), 'monkr-mnt-'));
-	// Apple's bezel DMGs embed a click-through license; `yes` accepts it.
-	sh(`yes | hdiutil attach -nobrowse -readonly -mountpoint ${q(mnt)} ${q(dmgPath)} >/dev/null 2>&1`);
-	return mnt;
+// ── DMG extraction (platform layer) ──────────────────────────────────────
+// darwin → hdiutil mount (read-only, license click-through auto-accepted).
+// elsewhere → 7-Zip ≥21 (`7zz`/`7z`), which unpacks APFS + HFS+ DMGs
+// directly to disk and never surfaces the license prompt. Both yield
+// { root, cleanup } and the PNG payload is *searched for* under root
+// (pngPayload), so 7-Zip wrapper dirs (volume/partition names, nested
+// `.app` bundles) don't matter.
+
+const cmdExists = (cmd) =>
+	spawnSync(cmd, [], { stdio: 'ignore' }).error?.code !== 'ENOENT';
+
+function dmgExtractor() {
+	if (process.platform === 'darwin' && cmdExists('hdiutil')) return 'hdiutil';
+	for (const c of ['7zz', '7z']) if (cmdExists(c)) return c;
+	throw new Error(
+		'no DMG extractor found: need hdiutil (macOS) or official 7-Zip ≥21 ' +
+		'(`7zz`, for APFS support — p7zip 16.x is too old). ' +
+		'Install with `sudo apt-get install 7zip` (Ubuntu 24.04+) or `brew install 7zip`.');
 }
 
-function unmountDMG(mnt) {
-	try { sh(`hdiutil detach ${q(mnt)} >/dev/null 2>&1`); } catch { /* best effort */ }
-	rmSync(mnt, { recursive: true, force: true });
+/** Run `<tool> x <archive>` into destDir. Exit code 1 = warnings (e.g. unreadable resource forks) — tolerated. */
+function sevenZipExtract(tool, archive, destDir) {
+	const r = spawnSync(tool, ['x', '-y', `-o${destDir}`, archive], { encoding: 'utf8' });
+	if (r.error) throw r.error;
+	if (r.status !== 0 && r.status !== 1) {
+		throw new Error(`${tool} x failed (${r.status}) on ${archive}\n${r.stderr || r.stdout}`);
+	}
 }
 
-function pngFilesUnder(mnt) {
-	const pngRoot = join(mnt, 'PNG');
-	const base = existsSync(pngRoot) ? pngRoot : mnt;
-	return readdirSync(base, { recursive: true })
-		.map(String)
-		.filter((p) => p.toLowerCase().endsWith('.png') && !p.split('/').some((s) => s.startsWith('.')))
-		.map((p) => ({ rel: p, abs: join(base, p) }));
+function listFiles(root) {
+	return readdirSync(root, { recursive: true })
+		.map((p) => String(p).split(sep).join('/'));
+}
+
+function extractDMG(dmgPath) {
+	const tool = dmgExtractor();
+	if (tool === 'hdiutil') {
+		const mnt = mkdtempSync(join(tmpdir(), 'monkr-mnt-'));
+		// Apple's bezel DMGs embed a click-through license; `yes` accepts it.
+		sh(`yes | hdiutil attach -nobrowse -readonly -mountpoint ${q(mnt)} ${q(dmgPath)} >/dev/null 2>&1`);
+		return {
+			root: mnt,
+			cleanup() {
+				try { sh(`hdiutil detach ${q(mnt)} >/dev/null 2>&1`); } catch { /* best effort */ }
+				rmSync(mnt, { recursive: true, force: true });
+			}
+		};
+	}
+	const dir = mkdtempSync(join(tmpdir(), 'monkr-dmg-'));
+	sevenZipExtract(tool, dmgPath, dir);
+	// Some DMG layouts unpack to an intermediate filesystem image (e.g.
+	// "4.apfs" partition blobs) instead of the file tree — extract those in
+	// place until PNG files appear (bounded; each pass deletes its input).
+	for (let pass = 0; pass < 3; pass++) {
+		const files = listFiles(dir);
+		if (pngPayload(files).length) break;
+		const inner = files.find((p) => /\.(apfs|hfsx?|img|dmg)$/i.test(p) &&
+			statSync(join(dir, p)).isFile());
+		if (!inner) break;
+		const innerAbs = join(dir, inner);
+		sevenZipExtract(tool, innerAbs, dir);
+		rmSync(innerAbs, { force: true });
+	}
+	return {
+		root: dir,
+		cleanup() { rmSync(dir, { recursive: true, force: true }); }
+	};
+}
+
+function pngFilesUnder(root) {
+	return pngPayload(listFiles(root)).map(({ rel, path }) => ({ rel, abs: join(root, path) }));
 }
 
 // ── import one source ─────────────────────────────────────────────────────
@@ -136,10 +191,10 @@ function importSource(src, { handTuned, ownedSlugs, force }) {
 	download(src.url, dmgPath);
 	const hash = sha256(dmgPath);
 	const size = statSync(dmgPath).size;
-	const mnt = mountDMG(dmgPath);
+	const extracted = extractDMG(dmgPath);
 	const slugs = {};
 	try {
-		const files = pngFilesUnder(mnt);
+		const files = pngFilesUnder(extracted.root);
 		const variants = parseVariants(files.map((f) => f.rel));
 		const byRel = new Map(files.map((f) => [f.rel, f.abs]));
 		const models = groupVariants(variants);
@@ -200,7 +255,7 @@ function importSource(src, { handTuned, ownedSlugs, force }) {
 			};
 		}
 	} finally {
-		unmountDMG(mnt);
+		extracted.cleanup();
 	}
 	return { hash, size, slugs, todos };
 }

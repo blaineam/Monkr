@@ -225,6 +225,33 @@ export function maskSVG(w, h, corners = { tl: 0, tr: 0, bl: 0, br: 0 }) {
 	return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" fill="none" xmlns="http://www.w3.org/2000/svg">\n<path d="${p.join(' ')}" fill="white"/>\n</svg>\n`;
 }
 
+/**
+ * Locate the PNG payload in a recursive file listing of a mounted or
+ * extracted bezel DMG. Apple's volumes put the art under a top-level `PNG/`
+ * folder, but non-hdiutil extractors (7-Zip) can wrap the volume contents in
+ * extra directories (volume name, partition name, nested `.app` bundles…),
+ * so we search for a path segment literally named "PNG" anywhere in the
+ * tree instead of assuming the root layout. Paths are returned relative to
+ * that PNG folder — the shape `parseVariants` expects. If no PNG segment
+ * exists, every .png in the tree is returned relative to the listing root
+ * (matches the old mounted-path fallback). Hidden segments (dot-files,
+ * `__MACOSX` resource-fork shadows) are skipped.
+ * @param {string[]} paths file paths (slash-separated) relative to the tree root
+ * @returns {Array<{rel: string, path: string}>} rel = payload-relative, path = input path
+ */
+export function pngPayload(paths) {
+	const visible = paths.filter((p) =>
+		p.toLowerCase().endsWith('.png') &&
+		!p.split('/').some((s) => s.startsWith('.') || s === '__MACOSX'));
+	const under = [];
+	for (const path of visible) {
+		const segs = path.split('/');
+		const i = segs.findIndex((s) => s.toUpperCase() === 'PNG');
+		if (i >= 0 && i < segs.length - 1) under.push({ rel: segs.slice(i + 1).join('/'), path });
+	}
+	return under.length ? under : visible.map((path) => ({ rel: path, path }));
+}
+
 /** Extract a year ("…-2025.dmg") from a DMG filename, else null. */
 export function yearFromFile(file) {
 	const m = file.match(/-(20\d\d)\.dmg$/i);

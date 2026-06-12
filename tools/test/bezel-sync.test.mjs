@@ -10,7 +10,7 @@ import { deflateSync } from 'node:zlib';
 
 import {
 	classDefaults, classifyDevice, diffManifest, groupVariants, maskSVG,
-	overlapReport, parseBezelLinks, parseVariants, slugify, yearFromFile
+	overlapReport, parseBezelLinks, parseVariants, pngPayload, slugify, yearFromFile
 } from '../lib/bezel-sync.mjs';
 import { measure } from '../measure-bezel.mjs';
 import { mergeDevices } from '../../src/lib/stores/devices.merge.js';
@@ -133,6 +133,42 @@ test('groupVariants prefers portrait art and groups by model slug', () => {
 	assert.deepEqual([...groups.keys()].sort(), ['ipad-pro-m5-11', 'ipad-pro-m5-13']);
 	const eleven = groups.get('ipad-pro-m5-11');
 	assert.equal(eleven.colors.get('silver').rel, 'iPad Pro (M5) 11" - Silver - Portrait.png');
+});
+
+// ── PNG payload discovery (hdiutil mount vs. 7-Zip extraction trees) ─────
+test('pngPayload: hdiutil-style tree (PNG/ at volume root)', () => {
+	const got = pngPayload([
+		'PNG',
+		'PNG/iPhone 17',
+		'PNG/iPhone 17/iPhone 17 - Black - Portrait.png',
+		'PNG/iPhone 17 - Lavender - Portrait.png',
+		'License.rtf',
+		'.background/banner.png'
+	]);
+	assert.deepEqual(got, [
+		{ rel: 'iPhone 17/iPhone 17 - Black - Portrait.png',
+			path: 'PNG/iPhone 17/iPhone 17 - Black - Portrait.png' },
+		{ rel: 'iPhone 17 - Lavender - Portrait.png',
+			path: 'PNG/iPhone 17 - Lavender - Portrait.png' }
+	]);
+});
+
+test('pngPayload: 7-Zip wrapper dirs (volume/partition names) are skipped over', () => {
+	const got = pngPayload([
+		'iPad Pro (M5)/PNG/iPad Pro (M5) 13" - Silver - Portrait.png',
+		'iPad Pro (M5)/License.rtf',
+		'iPad Pro (M5)/__MACOSX/PNG/._iPad Pro (M5) 13" - Silver - Portrait.png',
+		'iPad Pro (M5)/.DS_Store'
+	]);
+	assert.deepEqual(got, [{
+		rel: 'iPad Pro (M5) 13" - Silver - Portrait.png',
+		path: 'iPad Pro (M5)/PNG/iPad Pro (M5) 13" - Silver - Portrait.png'
+	}]);
+});
+
+test('pngPayload: no PNG folder → every visible .png relative to root', () => {
+	const got = pngPayload(['Apple TV 4K.png', 'readme.txt', '.hidden/x.png']);
+	assert.deepEqual(got, [{ rel: 'Apple TV 4K.png', path: 'Apple TV 4K.png' }]);
 });
 
 // ── manifest diff ─────────────────────────────────────────────────────────

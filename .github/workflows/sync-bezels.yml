@@ -10,16 +10,30 @@ permissions:
   contents: write
   pull-requests: write
 
+env:
+  # The sync path never launches a browser (measurement is pure Node, and
+  # `npm test` only runs the fixture-based tools/test suites), so skip the
+  # Playwright browser download that `npm ci` would otherwise trigger.
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+
 jobs:
   sync:
-    # hdiutil (DMG mount + license auto-accept) requires macOS.
-    runs-on: macos-latest
+    # DMG extraction on Linux uses official 7-Zip (7zz ≥21 reads APFS/HFS+
+    # DMGs directly and never sees the embedded click-through license);
+    # macOS would use hdiutil — see tools/sync-bezels.mjs extractDMG().
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      - name: Install 7-Zip (DMG extractor)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y 7zip
+          7zz | head -2   # verify availability + version (need ≥21 for APFS)
 
       - name: Install deps
         run: npm ci

@@ -32,8 +32,8 @@ What a run does, per managed source:
    truth: per source → URL, sha256, size, fetch date, device class, status,
    and the generated registry entries per model slug).
 3. **Fetch + integrate** — download the DMG (sha256-recorded once at fetch),
-   auto-accept the embedded license (`yes | hdiutil attach -nobrowse
-   -readonly`), parse the `PNG/` variants into model + color + orientation
+   extract it (platform-aware — see below), parse the `PNG/` variants into
+   model + color + orientation
    (portrait art preferred), measure **every** color PNG with
    `tools/measure-bezel.mjs`, copy PNGs to `static/devices/<slug>/`,
    generate a `display.svg` mask from the measured cutout + per-corner radii
@@ -43,6 +43,30 @@ What a run does, per managed source:
    (e.g. device classes that rocket's `DISPLAY_FOR` table can't map to an
    App Store Connect display type yet), and an overlap report of hand-tuned
    devices that have an official bezel available.
+
+### Platform support (DMG extraction)
+
+The tool runs on macOS **and** Linux; only the DMG-extraction step differs
+(`extractDMG()` in `tools/sync-bezels.mjs`):
+
+- **macOS** — `yes | hdiutil attach -nobrowse -readonly` (the `yes` pipe
+  auto-accepts the DMG's embedded click-through license).
+- **Linux / other** — official 7-Zip (`7zz`, falling back to `7z`):
+  `7zz x <dmg>`. 7-Zip ≥21 reads APFS and HFS+ DMGs directly and never
+  surfaces the license prompt. Install with `sudo apt-get install 7zip`
+  (Ubuntu 24.04+) or `brew install 7zip`. p7zip 16.x is too old (no APFS).
+
+7-Zip can wrap the volume contents in extra directories (volume name,
+partition blobs, `__MACOSX` shadows, `file:com.apple.*` xattr streams), so
+the PNG payload is *searched for* anywhere in the extracted tree
+(`pngPayload()` in `tools/lib/bezel-sync.mjs`) instead of assuming the
+mounted-volume root layout — both extractors yield identical
+payload-relative paths and identical measurements (verified against
+`Bezel-iPad-Pro-(M5).dmg`: 8/8 PNGs byte-equivalent geometry).
+
+The monthly GitHub Action (`.github/workflows/sync-bezels.yml`) runs on
+`ubuntu-latest` with the `7zip` apt package; if neither extractor exists
+the tool fails with an install hint.
 
 ### Registry merge rule
 
@@ -84,6 +108,8 @@ The bezel `.dmg` links on the resources page are plain CDN URLs:
 curl -L -O "https://devimages-cdn.apple.com/design/resources/download/Bezel-Apple-Watch-Series-11-2025.dmg"
 # The DMGs embed a license agreement prompt; accept it non-interactively:
 yes | hdiutil attach -nobrowse -readonly Bezel-Apple-Watch-Series-11-2025.dmg
+# …or on Linux, extract without mounting (7-Zip ≥21, no license prompt):
+7zz x Bezel-Apple-Watch-Series-11-2025.dmg -obezels
 ```
 
 Each DMG contains `PNG/<Band>/<exact variant>.png` (transparent screen
