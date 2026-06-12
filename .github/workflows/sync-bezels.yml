@@ -4,7 +4,16 @@ on:
   schedule:
     # First Tuesday-ish of each month, 14:00 UTC — after most Apple events settle.
     - cron: '0 14 3 * *'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      only:
+        description: 'Restrict the run to sources matching this pattern (--only)'
+        required: false
+        default: ''
+      force:
+        description: 'Re-fetch/re-import sources matching this pattern (--force; exercises download + extraction even when nothing changed upstream)'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -40,9 +49,15 @@ jobs:
 
       - name: Discover + refresh managed bezels
         id: sync
+        env:
+          ONLY: ${{ inputs.only }}
+          FORCE: ${{ inputs.force }}
         run: |
           set -o pipefail
-          node tools/sync-bezels.mjs | tee /tmp/sync-report.txt
+          ARGS=()
+          [ -n "$ONLY" ] && ARGS+=(--only "$ONLY")
+          [ -n "$FORCE" ] && ARGS+=(--force "$FORCE")
+          node tools/sync-bezels.mjs "${ARGS[@]}" | tee /tmp/sync-report.txt
           # expose whether anything changed
           if git diff --quiet && git diff --cached --quiet && [ -z "$(git status --porcelain static/devices src/lib)" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
@@ -75,7 +90,8 @@ jobs:
             tail -40 /tmp/sync-report.txt
           } > /tmp/commit-msg.txt
           git commit -F /tmp/commit-msg.txt
-          git push -u origin "$BRANCH"
+          # force: the month's bot branch may exist from an earlier run/rerun
+          git push -u --force origin "$BRANCH"
           gh pr create --fill --body-file /tmp/sync-report.txt || true
 
       - name: Report (no changes)
