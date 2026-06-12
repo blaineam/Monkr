@@ -1,0 +1,66 @@
+name: Sync Apple bezels
+
+on:
+  schedule:
+    # First Tuesday-ish of each month, 14:00 UTC — after most Apple events settle.
+    - cron: '0 14 3 * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    # hdiutil (DMG mount + license auto-accept) requires macOS.
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Discover + refresh managed bezels
+        id: sync
+        run: |
+          set -o pipefail
+          node tools/sync-bezels.mjs | tee /tmp/sync-report.txt
+          # expose whether anything changed
+          if git diff --quiet && git diff --cached --quiet && [ -z "$(git status --porcelain static/devices src/lib)" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build + test with refreshed bezels
+        if: steps.sync.outputs.changed == 'true'
+        run: |
+          npm test
+          npm run build
+
+      - name: Open PR with changes
+        if: steps.sync.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BRANCH="bezel-sync/$(date +%Y-%m)"
+          git config user.name "monkr-bezel-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add static/devices src/lib docs README.md 2>/dev/null || true
+          git commit -m "Bezel sync: refresh from Apple Design Resources
+
+Automated monthly sync. Review the report below; new device CLASSES
+need a human-confirmed ASC display-type mapping before screenshot use.
+
+$(tail -40 /tmp/sync-report.txt)"
+          git push -u origin "$BRANCH"
+          gh pr create --fill --body-file /tmp/sync-report.txt || true
+
+      - name: Report (no changes)
+        if: steps.sync.outputs.changed != 'true'
+        run: echo "No bezel changes this month." && tail -20 /tmp/sync-report.txt
