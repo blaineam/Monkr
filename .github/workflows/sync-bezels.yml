@@ -66,12 +66,15 @@ jobs:
           git config user.email "bot@users.noreply.github.com"
           git checkout -b "$BRANCH"
           git add static/devices src/lib docs README.md 2>/dev/null || true
-          git commit -m "Bezel sync: refresh from Apple Design Resources
-
-Automated monthly sync. Review the report below; new device CLASSES
-need a human-confirmed ASC display-type mapping before screenshot use.
-
-$(tail -40 /tmp/sync-report.txt)"
+          {
+            echo "Bezel sync: refresh from Apple Design Resources"
+            echo
+            echo "Automated monthly sync. Review the report below; new device CLASSES"
+            echo "need a human-confirmed ASC display-type mapping before screenshot use."
+            echo
+            tail -40 /tmp/sync-report.txt
+          } > /tmp/commit-msg.txt
+          git commit -F /tmp/commit-msg.txt
           git push -u origin "$BRANCH"
           gh pr create --fill --body-file /tmp/sync-report.txt || true
 
