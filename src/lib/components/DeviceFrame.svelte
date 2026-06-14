@@ -38,7 +38,29 @@
 
 	let isBrowser = $derived(device.category === 'browser');
 	let isTv = $derived(device.category === 'tv');
+	let isWatch = $derived(device.category === 'watch');
 	let isDarkBrowser = $derived(device.id === 'browser-dark');
+
+	// Screenshot overscan: how far the (masked) screenshot bleeds OUTWARD past the
+	// frame's transparent screen opening on every side, so the opaque bezel edge
+	// always overlaps the screenshot and no transparent background shows through.
+	//
+	// Phones/tablets/desktops have low-curvature screen corners, so a 1px bleed is
+	// enough to hide sub-pixel rounding seams (and keeps the mask scale change
+	// imperceptible).
+	//
+	// Apple Watch openings are EXTREMELY rounded (corner radius ≈ 27-29% of the
+	// screen width). At those corners the rounded-rect mask recedes steeply from
+	// the bezel's inner edge, so a 1px bleed left a thin transparent sliver in the
+	// gap between the masked screenshot corner and the bezel — visible as a
+	// background-coloured crescent at each of the 4 corners. Bleeding the watch
+	// screenshot further under the bezel (a few percent of the screen size) pushes
+	// the masked corner curve beneath the opaque frame edge, closing the gap. The
+	// mask still defines the visible rounded corners; only the hidden, overscanned
+	// portion changes.
+	let overscanPct = $derived(isWatch ? 2.4 : 0); // % of screen size, per side
+	let overscanX = $derived((screen.width * overscanPct) / 100); // in canvas %
+	let overscanY = $derived((screen.height * overscanPct) / 100);
 
 	// Track screenshot natural dimensions for aspect-ratio-aware rendering
 	let screenshotNatW = $state(0);
@@ -159,13 +181,20 @@
 			{/if}
 		{:else if showFrame}
 			<!-- Screenshot behind the frame, clipped to screen area.
-			     Expanded 1px outward on every side so sub-pixel rounding gaps between
-			     this div and the frame PNG's transparent screen opening are covered by
-			     the frame's opaque edges. The mask scales by ~0.4% which is imperceptible. -->
+			     Overscanned outward on every side so the opaque frame edge always
+			     overlaps the masked screenshot and no transparent background shows
+			     through the screen opening. Phones/tablets use a 1px bleed (covers
+			     sub-pixel rounding seams); watches use a larger percentage bleed
+			     (overscanX/overscanY) because their highly-rounded corners otherwise
+			     leave a transparent sliver — see the overscan note in <script>. The
+			     SVG mask scales with the div, so the visible rounded corners stay
+			     correct; only the hidden overscanned portion grows. -->
 			<div
 				class="absolute overflow-hidden"
-				style="left: calc({screen.left}% - 1px); top: calc({screen.top}% - 1px);
-					width: calc({screen.width}% + 2px); height: calc({screen.height}% + 2px);
+				style="left: calc({screen.left}% - {isWatch ? `${overscanX}%` : '1px'});
+					top: calc({screen.top}% - {isWatch ? `${overscanY}%` : '1px'});
+					width: calc({screen.width}% + {isWatch ? `${overscanX * 2}%` : '2px'});
+					height: calc({screen.height}% + {isWatch ? `${overscanY * 2}%` : '2px'});
 					-webkit-mask-image: url({maskUrl});
 					mask-image: url({maskUrl});
 					-webkit-mask-size: 100% 100%;

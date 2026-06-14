@@ -186,6 +186,20 @@ fit of the cutout's top-left curve).
   `pngW/pngH` = frame size, `svgW/svgH` = cutout size, `screenLeft/screenTop`
   = cutout origin as a percentage of the frame; `display.svg` is a rounded
   rect at the measured corner radius.
+- **Watch screenshot overscan.** The Apple Watch openings are extremely
+  rounded (corner radius ≈ 27–29 % of the screen width). At those corners the
+  rounded-rect mask recedes steeply from the bezel's inner edge, so positioning
+  the masked screenshot exactly at the cutout (the 1 px bleed used for phones/
+  tablets) left a thin transparent sliver in the gap at all four corners — the
+  page background showed through on a transparent export. `DeviceFrame.svelte`
+  therefore overscans the **watch** screenshot outward by ≈2.4 % of the screen
+  size per side (`overscanX`/`overscanY`, gated on `device.category === 'watch'`)
+  so the opaque bezel edge always overlaps the masked screenshot. The SVG mask
+  scales with the div, so the visible rounded corners stay correct; only the
+  hidden, overscanned portion grows under the frame. Phones/tablets/desktops are
+  unchanged (1 px bleed). Verified pixel-exact with `monkr render` on a solid
+  test screenshot + transparent background: zero `alpha<255` pixels remain in
+  the screen's rounded corners.
 
 ## Adding more official bezels
 
