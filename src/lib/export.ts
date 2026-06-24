@@ -8,6 +8,15 @@ function waitForRepaint(): Promise<void> {
 }
 
 /**
+ * html-to-image node filter: drop editor-only chrome (e.g. the transparency
+ * checkerboard underlay) so exported PNGs are genuinely transparent. Returning
+ * false excludes the node and its subtree.
+ */
+function exportFilter(node: HTMLElement): boolean {
+	return !(node instanceof HTMLElement && node.classList?.contains('monkr-export-ignore'));
+}
+
+/**
  * Safari ships a long-standing bug: images inside an SVG `foreignObject`
  * decode in a separate context from the main document, so the first capture
  * after a DOM mutation rasterizes with blank/black image content even though
@@ -67,7 +76,8 @@ export async function captureToDataUrl(
 		const options = {
 			pixelRatio: scale,
 			cacheBust: false,
-			quality: format === 'jpg' ? 0.95 : undefined
+			quality: format === 'jpg' ? 0.95 : undefined,
+			filter: exportFilter
 		};
 
 		if (format === 'jpg') {
@@ -111,7 +121,8 @@ export async function exportCanvasSections(
 		const options = {
 			pixelRatio: scale,
 			cacheBust: false,
-			quality: format === 'jpg' ? 0.95 : undefined
+			quality: format === 'jpg' ? 0.95 : undefined,
+			filter: exportFilter
 		};
 
 		let fullDataUrl: string;

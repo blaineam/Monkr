@@ -31,7 +31,10 @@
 					? `background-image: url(${bg.imageUrl}); background-size: cover; background-position: center;`
 					: `background-color: ${bg.solidColor};`;
 			case 'transparent':
-				return 'background: repeating-conic-gradient(#808080 0% 25%, transparent 0% 50%) 50% / 20px 20px;';
+				// Truly transparent on the captured element. The checkerboard the editor
+				// shows is a separate `.monkr-export-ignore` underlay (below) that the
+				// exporter filters out, so exported PNGs are genuinely transparent.
+				return 'background: transparent;';
 			case 'magic':
 				return 'background-color: #000;';
 			default:
@@ -151,6 +154,15 @@
 			onclick={handleCanvasClick}
 			role="presentation"
 		>
+			<!-- Editor-only transparency checkerboard. Tagged so the exporter skips it,
+			     keeping exported "transparent" PNGs genuinely transparent. -->
+			{#if store.background.type === 'transparent'}
+				<div
+					class="monkr-export-ignore pointer-events-none absolute inset-0"
+					style="background: repeating-conic-gradient(#808080 0% 25%, transparent 0% 50%) 50% / 20px 20px;"
+				></div>
+			{/if}
+
 			<!-- ═══ PERSPECTIVE MOCKUP MODE ═══ -->
 			{#if store.activeMockup}
 				{@const mockup = store.activeMockup}
