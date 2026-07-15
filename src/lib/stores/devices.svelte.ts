@@ -298,6 +298,23 @@ const builtInDevices: DeviceMeta[] = [
 			{ id: 'space-gray', name: 'Space Gray', slug: 'space-gray' }
 		]
 	},
+	{
+		// The only non-Apple laptop, and the only bezel here that isn't vendor artwork:
+		// sync-bezels pulls Apple's official Product Bezels, and there is no equivalent
+		// download for a PC. Drawn to match the flat style of the Pixel/Nothing frames
+		// rather than Apple's photoreal ones. Deliberately unbranded — one generic PC
+		// lid serves both Windows and Linux, and the screenshot inside says which.
+		// Geometry: 1280x800 screen, 160px side margins (160/1600 = 10%), 110px top
+		// margin (110/1160 = 9.4828%); the space below the screen is hinge + base.
+		id: 'pc-laptop', name: 'PC Laptop', category: 'laptop', brand: 'Generic',
+		slug: 'pc-laptop', pngW: 1600, pngH: 1160, svgW: 1280, svgH: 800, year: 2024,
+		screenTop: 9.4828, screenLeft: 10.0,
+		notch: 'none',
+		colors: [
+			{ id: 'dark', name: 'Graphite', slug: 'dark' },
+			{ id: 'silver', name: 'Silver', slug: 'silver' }
+		]
+	},
 	// ─── Desktops ────────────────────────────────────────────
 	{
 		id: 'imac-24', name: 'iMac 24"', category: 'laptop', brand: 'Apple',
