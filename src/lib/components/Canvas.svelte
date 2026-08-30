@@ -32,8 +32,8 @@
 					: `background-color: ${bg.solidColor};`;
 			case 'transparent':
 				// Truly transparent on the captured element. The checkerboard the editor
-				// shows is a separate `.monkr-export-ignore` underlay (below) that the
-				// exporter filters out, so exported PNGs are genuinely transparent.
+				// shows is painted by a sibling of the captured element (see below), not
+				// a child, so no export can pick it up however it is captured.
 				return 'background: transparent;';
 			case 'magic':
 				return 'background-color: #000;';
@@ -145,6 +145,19 @@
 		class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
 		style="width: {store.canvasSize.width * viewScale}px; height: {store.canvasSize.height * viewScale}px;"
 	>
+		<!-- Editor-only transparency checkerboard. Deliberately a SIBLING of the
+		     capture root below, never a child: anything inside canvasRef only stays
+		     out of an export if every capture call site remembers to pass a filter,
+		     and historically they didn't. This wrapper is exactly the scaled
+		     footprint of canvasRef, so inset-0 lines up pixel-for-pixel, and
+		     document order (both z-index: auto) paints it behind. -->
+		{#if store.background.type === 'transparent'}
+			<div
+				class="monkr-export-ignore pointer-events-none absolute inset-0"
+				style="background: repeating-conic-gradient(#808080 0% 25%, transparent 0% 50%) 50% / 20px 20px;"
+			></div>
+		{/if}
+
 		<div
 			bind:this={canvasRef}
 			class="relative overflow-hidden"
@@ -154,15 +167,6 @@
 			onclick={handleCanvasClick}
 			role="presentation"
 		>
-			<!-- Editor-only transparency checkerboard. Tagged so the exporter skips it,
-			     keeping exported "transparent" PNGs genuinely transparent. -->
-			{#if store.background.type === 'transparent'}
-				<div
-					class="monkr-export-ignore pointer-events-none absolute inset-0"
-					style="background: repeating-conic-gradient(#808080 0% 25%, transparent 0% 50%) 50% / 20px 20px;"
-				></div>
-			{/if}
-
 			<!-- ═══ PERSPECTIVE MOCKUP MODE ═══ -->
 			{#if store.activeMockup}
 				{@const mockup = store.activeMockup}

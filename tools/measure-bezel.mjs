@@ -18,7 +18,9 @@ import { readFileSync } from 'node:fs';
 import { inflateSync } from 'node:zlib';
 import { pathToFileURL } from 'node:url';
 
-function decodePNG(buf) {
+// Exported so tests can assert on a PNG's alpha channel directly (see
+// tools/test/transparent-export.test.mjs) without pulling in an image library.
+export function decodePNG(buf) {
 	if (buf.readUInt32BE(0) !== 0x89504e47) throw new Error('not a PNG');
 	let pos = 8;
 	let ihdr = null;

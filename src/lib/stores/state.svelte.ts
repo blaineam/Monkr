@@ -3,6 +3,7 @@ import type {
 	BackgroundConfig,
 	BackgroundType,
 	CanvasSize,
+	ExportConfig,
 	ExportFormat,
 	ExportScale,
 	FrameStyle,
@@ -373,8 +374,17 @@ class MonkrStore {
 		return this._state.sceneObjects.find((o) => o.id === this._state.selectedObjectId);
 	}
 
-	get exportConfig() {
-		return this._state.exportConfig;
+	get exportConfig(): ExportConfig {
+		const c = this._state.exportConfig;
+		// JPEG has no alpha channel, so a transparent background would export as
+		// opaque black. Coerce here rather than in setExportFormat so every
+		// consumer agrees — the format picker, Download, Copy, App Store slices,
+		// and the headless/CLI renderer — including projects loaded from a .monkr
+		// that already carries a stale format: 'jpg'. The stored value is left
+		// alone, so the user's real choice comes back when the background does.
+		return c.format === 'jpg' && this._state.background.type === 'transparent'
+			? { ...c, format: 'png' }
+			: c;
 	}
 
 	get canvasSize(): CanvasSize {

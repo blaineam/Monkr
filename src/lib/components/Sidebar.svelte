@@ -1231,11 +1231,18 @@
 					<span class="text-[10px] font-medium text-zinc-500">Format</span>
 					<div class="grid grid-cols-2 gap-0.5 rounded-lg bg-zinc-800/80 p-0.5">
 						{#each ['png', 'jpg'] as format}
+							{@const blocked = store.background.type === 'transparent' && format === 'jpg'}
 							<button class="rounded-md py-1 text-[10px] font-medium uppercase transition-colors
-								{store.exportConfig.format === format ? 'bg-zinc-700 text-white' : 'text-zinc-500'}"
+								{store.exportConfig.format === format ? 'bg-zinc-700 text-white' : 'text-zinc-500'}
+								{blocked ? 'cursor-not-allowed opacity-40' : ''}"
+								disabled={blocked}
+								title={blocked ? 'JPEG has no alpha channel — switch Background off “None” to export JPG' : ''}
 								onclick={() => store.setExportFormat(format as ExportFormat)}>{format}</button>
 						{/each}
 					</div>
+					{#if store.background.type === 'transparent'}
+						<span class="block text-[10px] text-zinc-500">PNG only — JPEG has no transparency</span>
+					{/if}
 				</div>
 				<ExportButton {canvasRef} />
 			</div>

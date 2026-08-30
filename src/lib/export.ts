@@ -1,19 +1,11 @@
 import { toPng, toJpeg, toBlob } from 'html-to-image';
 import { preInlineImages, stripTransformForCapture } from './animation';
+import { exportFilter } from './capture-filter';
 import type { ExportFormat, ExportScale } from './types';
 
 /** Wait two animation frames so the browser repaints after DOM mutations before capture. */
 function waitForRepaint(): Promise<void> {
 	return new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
-}
-
-/**
- * html-to-image node filter: drop editor-only chrome (e.g. the transparency
- * checkerboard underlay) so exported PNGs are genuinely transparent. Returning
- * false excludes the node and its subtree.
- */
-function exportFilter(node: HTMLElement): boolean {
-	return !(node instanceof HTMLElement && node.classList?.contains('monkr-export-ignore'));
 }
 
 /**
@@ -182,7 +174,8 @@ export async function copyToClipboard(
 	try {
 		const blob = await captureBlob(element, {
 			pixelRatio: scale,
-			cacheBust: false
+			cacheBust: false,
+			filter: exportFilter
 		});
 		if (!blob) throw new Error('Failed to create image blob');
 
