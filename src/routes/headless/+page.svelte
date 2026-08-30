@@ -7,6 +7,7 @@
 	import { onMount, tick } from 'svelte';
 	import Canvas from '$lib/components/Canvas.svelte';
 	import { store } from '$lib/stores/state.svelte';
+	import { deviceRegistry } from '$lib/stores/devices.svelte';
 	import { captureToDataUrl } from '$lib/export';
 	import type { ExportFormat, ExportScale } from '$lib/types';
 
@@ -84,8 +85,12 @@
 	}
 
 	onMount(() => {
+		// `devices` is exposed purely so tests can assert every registered device
+		// colour actually has frame art on disk. A missing PNG fails silently — the
+		// frame <img> 404s and the device renders as a bare screenshot — so it needs
+		// an automated check, and this route is already the automation surface.
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		(window as any).__monkr = { render };
+		(window as any).__monkr = { render, devices: deviceRegistry.devices };
 		document.body.setAttribute('data-monkr-headless', 'ready');
 	});
 </script>

@@ -68,7 +68,12 @@ const builtInDevices: DeviceMeta[] = [
 		notch: 'dynamic-island',
 		colors: [
 			{ id: 'black-titanium', name: 'Black Titanium', slug: 'black-titanium' },
-			{ id: 'desert-titanium', name: 'Desert Titanium', slug: 'desert-titanium' },
+			// slug is the frame-art filename, which ships as gold-titanium.png (the
+			// same asset the 16 Pro calls Gold Titanium). Keeping id/name as Apple's
+			// "Desert Titanium" preserves saved projects and the real colour name;
+			// only the slug has to match what's on disk, or the frame <img> 404s and
+			// the device renders as a bare screenshot with no frame at all.
+			{ id: 'desert-titanium', name: 'Desert Titanium', slug: 'gold-titanium' },
 			{ id: 'natural-titanium', name: 'Natural Titanium', slug: 'natural-titanium' },
 			{ id: 'white-titanium', name: 'White Titanium', slug: 'white-titanium' }
 		]
