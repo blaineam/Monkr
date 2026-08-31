@@ -20,9 +20,10 @@ permissions:
   pull-requests: write
 
 env:
-  # The sync path never launches a browser (measurement is pure Node, and
-  # `npm test` only runs the fixture-based tools/test suites), so skip the
-  # Playwright browser download that `npm ci` would otherwise trigger.
+  # The sync path never launches a browser (measurement is pure Node), so skip
+  # the Playwright browser download that `npm ci` would otherwise trigger. The
+  # browser-based e2e suites skip themselves when no Chromium is installed;
+  # they run for real in ci.yml on the PR this workflow opens.
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
 
 jobs:
