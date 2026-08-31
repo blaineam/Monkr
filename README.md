@@ -123,7 +123,7 @@ Create animated mockups and export as video:
 | Format | Use Case |
 |--------|----------|
 | **PNG** | Lossless quality, transparency support |
-| **JPG** | Smaller files, great for web |
+| **JPG** | Smaller files, great for web — no alpha channel, so it's disabled while Background is "None" |
 | **MP4** | Animated mockups, social media |
 | **MOV** | QuickTime-compatible video |
 | **WebM** | Web-optimized video |
@@ -220,7 +220,8 @@ One framed image is written per screenshot. Useful flags: `--save` (write the
 updated `.monkr`), `--format png|jpg`, `--scale 1|2|3`, `--build` (force a
 rebuild first), and `--device/--color/--canvas` to synthesize a default frame
 when no `.monkr` exists yet. Run `monkr render --help` for the full list. The
-CLI auto-builds the static site on first use. Implemented in `bin/monkr.mjs` +
+CLI auto-builds the static site on first use and rebuilds automatically when
+`src/` has changed since the last build. Implemented in `bin/monkr.mjs` +
 `cli/render.mjs`, backed by the headless route at `src/routes/headless/`.
 
 ---
@@ -269,7 +270,7 @@ static/
 tools/
 ├── sync-bezels.mjs     # Sync frames with Apple's official Product Bezels
 ├── measure-bezel.mjs   # PNG alpha-channel screen-cutout measurement
-└── test/               # Fixture-based unit tests (npm test)
+└── test/               # Unit + headless end-to-end tests (npm test)
 ```
 
 ---
@@ -283,6 +284,16 @@ Contributions are welcome! Feel free to open issues or submit pull requests.
 3. Commit your changes
 4. Push to the branch (`git push origin feature/cool-thing`)
 5. Open a Pull Request
+
+Before opening a PR:
+
+- `npm test` — unit + headless end-to-end tests. The e2e tests drive a real
+  Chromium (`npx playwright install chromium` once); they skip when no browser
+  is installed.
+- `npm run check` — `svelte-check` must report no errors.
+
+CI runs the same two commands on every pull request. For larger changes, open
+an issue first so the approach can be discussed before you build it.
 
 ---
 

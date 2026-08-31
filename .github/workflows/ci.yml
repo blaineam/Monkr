@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  # npm ci would otherwise download every Playwright browser in postinstall;
+  # the install step below fetches exactly the one Chromium the e2e tests use.
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Install Chromium for e2e tests
+        run: npx playwright install --with-deps chromium
+
+      - name: Typecheck (svelte-check)
+        run: npm run check
+
+      - name: Test
+        run: npm test
