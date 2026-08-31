@@ -521,5 +521,9 @@ export async function captureAndExportVideo(
 	const mimeType = format === 'webm' ? 'video/webm'
 		: format === 'mov' ? 'video/quicktime'
 		: 'video/mp4';
-	return new Blob([result], { type: mimeType });
+	// FileData is `Uint8Array<ArrayBufferLike> | string` — copy into a fresh
+	// ArrayBuffer-backed view so the Blob never aliases (possibly shared) WASM
+	// memory. Also what makes this a valid BlobPart under TS 5.9.
+	const bytes = typeof result === 'string' ? new TextEncoder().encode(result) : new Uint8Array(result);
+	return new Blob([bytes], { type: mimeType });
 }
