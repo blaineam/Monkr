@@ -8,7 +8,7 @@
 // Exposed as the `monkr render` subcommand via ../bin/monkr.mjs.
 import { createServer } from 'node:http';
 import { readFile, writeFile, readdir, mkdir, stat } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync, statSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { extname, join, resolve, basename, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -72,7 +72,7 @@ function defaultProject({ device, color, canvas }) {
 }
 
 /** Static server for build/ with SvelteKit-style route resolution + SPA fallback. */
-function startServer(buildDir) {
+export function startServer(buildDir) {
 	return new Promise((resolveServer) => {
 		const server = createServer(async (req, res) => {
 			try {
@@ -89,8 +89,27 @@ function startServer(buildDir) {
 	});
 }
 
-function ensureBuild(buildDir, force) {
-	if (!force && existsSync(join(buildDir, 'headless.html'))) return;
+/** Newest mtime under a directory, or 0 if it doesn't exist. */
+function newestMtime(dir) {
+	let newest = 0;
+	const walk = (d) => {
+		for (const e of readdirSync(d, { withFileTypes: true })) {
+			const p = join(d, e.name);
+			if (e.isDirectory()) walk(p);
+			else newest = Math.max(newest, statSync(p).mtimeMs);
+		}
+	};
+	if (existsSync(dir)) walk(dir);
+	return newest;
+}
+
+export function ensureBuild(buildDir, force) {
+	const headless = join(buildDir, 'headless.html');
+	// Rebuild when src/ is newer than the bundle. Without this a months-old
+	// build/ is reused silently, so source fixes look like they did nothing.
+	const stale = existsSync(headless) && newestMtime(join(REPO_ROOT, 'src')) > statSync(headless).mtimeMs;
+	if (!force && !stale && existsSync(headless)) return;
+	if (stale) log('• build/ is older than src/ — rebuilding');
 	log(`• Building Monkr static site (${REPO_ROOT})`);
 	execFileSync('npm', ['run', 'build'], { cwd: REPO_ROOT, stdio: 'inherit' });
 	if (!existsSync(join(buildDir, 'headless.html'))) {

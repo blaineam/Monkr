@@ -1,6 +1,7 @@
 import { toPng, toBlob } from 'html-to-image';
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile } from '@ffmpeg/util';
+import { exportFilter } from './capture-filter';
 
 export interface AnimationKeyframe {
 	/** Time in ms from start */
@@ -440,7 +441,7 @@ export async function captureAndExportVideo(
 			// Yield to let Svelte flush DOM updates
 			await new Promise<void>((r) => setTimeout(r, 0));
 
-			const blob = await toBlob(element, { pixelRatio, cacheBust: false });
+			const blob = await toBlob(element, { pixelRatio, cacheBust: false, filter: exportFilter });
 			if (blob) {
 				// Write frame directly to FFmpeg FS — blob is GC'd after this
 				const data = new Uint8Array(await blob.arrayBuffer());
