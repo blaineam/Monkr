@@ -251,10 +251,13 @@ function importSource(src, { handTuned, ownedSlugs, force }) {
 					`type before rocket uploads through this frame.`);
 			}
 			if (ascFit && ascFit.anisotropy > ASC_FIT_ANISOTROPY_MAX) {
+				// object-cover scales to the larger axis and crops the other.
+				const cropAxis = ascFit.scale.x > ascFit.scale.y ? 'top/bottom' : 'left/right';
+				const lost = Math.round(ascFit.anisotropy * 1000) / 10;
 				todos.push(`${modelSlug}: cutout ${m0.cutout.w}×${m0.cutout.h} is not proportional to its ` +
 					`App Store size ${ascFit.size[0]}×${ascFit.size[1]} (scale ${ascFit.scale.x}× wide vs ` +
-					`${ascFit.scale.y}× tall) — screenshots are stretched ` +
-					`${Math.round(ascFit.anisotropy * 1000) / 10}% in this frame`);
+					`${ascFit.scale.y}× tall) — object-cover crops ~${lost}% off the ${cropAxis} of every ` +
+					`screenshot in this frame`);
 			}
 			if (isFoldable(src.name) || isFoldable(modelSlug)) {
 				todos.push(`${modelSlug}: looks like a folding device — it classifies as ` +

@@ -72,9 +72,11 @@ export const ASC_SCREENSHOT_SIZES = {
  * Closest ASC screenshot size for a measured cutout, in either orientation.
  * Cutouts are not always the screenshot size — Apple's Ultra bezel opening is
  * the 410x502 screenshot plus ~6px of flat glass per side (2.4%) — so the fit
- * is proportional. `scale` is per-axis on purpose: when x and y differ, a
- * screenshot dropped into that opening is *stretched*, not just enlarged, and
- * that is worth knowing before it becomes a store asset.
+ * is proportional. `scale` is per-axis on purpose: DeviceFrame fills the
+ * opening with `object-cover`, so when x and y differ the screenshot is scaled
+ * to the LARGER axis and the excess on the other one is cropped away. Content
+ * near those edges silently leaves the frame — worth knowing before it becomes
+ * a store asset.
  * @returns {{size: [number,number], scale: {x: number, y: number},
  *            drift: number, anisotropy: number}|null}
  *   null when nothing is within `tol` on both axes.
@@ -103,7 +105,7 @@ export function ascFitForCutout(deviceClass, w, h, { tol = 0.05 } = {}) {
 	return best;
 }
 
-/** A fit this uneven stretches the screenshot rather than scaling it. */
+/** Above this, `object-cover` crops a visible strip off the screenshot. */
 export const ASC_FIT_ANISOTROPY_MAX = 0.005;
 
 /** Decode the handful of HTML entities Apple's page uses in headings. */

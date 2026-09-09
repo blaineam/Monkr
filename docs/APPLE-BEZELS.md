@@ -130,9 +130,11 @@ Synced by the tool (geometry in `static/devices/manifest.json` and
 
 The 13″ iPad Pro cutout is exactly its ASC screenshot size (2064×2752). The
 11″ one is **not**: 1668 wide matches the 11″ screenshot exactly, but 2420
-tall is 1.3 % more than the 2388-tall screenshot, so art placed in that frame
-is stretched vertically rather than scaled (a sync run now TODOs this — see
-*Readiness checks* below). The iMac cutout is the 4.5K panel at 16:9
+tall is 1.3 % more than the 2388-tall screenshot. `DeviceFrame` fills the
+opening with `object-cover`, so a screenshot there is scaled up 1.34 % to
+cover the extra height and ~11 px is cropped off each side — content near the
+left and right edges silently leaves the frame (a sync run now TODOs this —
+see *Readiness checks* below). The iMac cutout is the 4.5K panel at 16:9
 (4480×2520); the
 Studio Display cutout is the 27" 5K panel (5120×2880), with the stand
 included in the frame art below it. All four Studio Display PNGs (2026 +
@@ -236,8 +238,11 @@ rocket ships anything through the frame. The table here is a **local copy for
 this check only**; keep rocket's as the source of truth.
 
 The fit is reported per axis, because an opening can match a slot's size
-while being the wrong *shape*: `anisotropy` above 0.5 % means a screenshot is
-stretched in that frame, not scaled. That is what caught the 11″ iPad Pro.
+while being the wrong *shape*. `DeviceFrame` fills an opening with
+`object-cover`: the screenshot is scaled to whichever axis needs more and the
+excess on the other is cropped, so `anisotropy` above 0.5 % means a visible
+strip is cut off every screenshot in that frame. That is what caught the 11″
+iPad Pro.
 
 **A folding device.** `isFoldable()` matches fold / flip / duo in a source or
 model name and TODOs it, because a foldable classifies as an ordinary

@@ -402,8 +402,9 @@ test('measure() ignores sub-threshold specks', () => {
 
 test('ascFitForCutout exposes a non-proportional fit as anisotropy', () => {
 	// The real iPad Pro (M5) 11" opening: 1668 wide is the 11" screenshot width
-	// exactly, but 2420 tall is 1.3% more than the 2388-tall screenshot — art
-	// dropped in this frame is stretched vertically, not scaled.
+	// exactly, but 2420 tall is 1.3% more than the 2388-tall screenshot. With
+	// object-cover the shot scales up to cover the height and loses ~11px off
+	// each side.
 	const fit = ascFitForCutout('ipad', 1668, 2420);
 	assert.deepEqual(fit.size, [1668, 2388]);
 	assert.equal(fit.scale.x, 1);
