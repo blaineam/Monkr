@@ -42,6 +42,7 @@ import { dirname, join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
 	RESOURCES_URL, ROCKET_COVERED_CLASSES, SLUG_ALIASES,
+	ASC_FIT_ANISOTROPY_MAX, ascFitForCutout, isFoldable,
 	buildEntry, classifyDevice, diffManifest, groupVariants, maskSVG,
 	overlapReport, parseBezelLinks, parseVariants, pngPayload, yearFromFile
 } from './lib/bezel-sync.mjs';
@@ -228,6 +229,38 @@ function importSource(src, { handTuned, ownedSlugs, force }) {
 				todos.push(`${modelSlug}: cutout is not a rounded rect (area ratio ${m0.areaRatio}) — ` +
 					`display.svg falls back to the bounding-box rect; verify the mask manually`);
 			}
+			// A frame with two openings (a foldable's inner + cover display) is
+			// imported for its LARGEST screen only: DeviceMeta carries one
+			// svgW/svgH/screenLeft/screenTop, so the second opening gets no mask
+			// and the page background shows through it on export.
+			const extraCutouts = m0.cutouts.slice(1);
+			if (extraCutouts.length) {
+				todos.push(`${modelSlug}: frame has ${m0.cutouts.length} enclosed cutouts — only the ` +
+					`largest (${m0.cutout.w}×${m0.cutout.h}) is masked; ` +
+					extraCutouts.map((c) => `${c.w}×${c.h} @ (${c.x},${c.y})`).join(', ') +
+					` left unmasked. A multi-screen device needs a registry entry per screen.`);
+			}
+			// Does this cutout correspond to a screenshot slot Apple accepts?
+			// ROCKET_COVERED_CLASSES only says "iPhones are mappable"; it cannot
+			// say whether THIS iPhone's screen has a display type.
+			const ascFit = ascFitForCutout(src.deviceClass, m0.cutout.w, m0.cutout.h);
+			if (!ascFit && ROCKET_COVERED_CLASSES.has(src.deviceClass)) {
+				todos.push(`${modelSlug}: cutout ${m0.cutout.w}×${m0.cutout.h} matches no App Store ` +
+					`screenshot size for class '${src.deviceClass}' — a new form factor or resolution. ` +
+					`Add the size to _shared/screenshots/lib/display-types.mjs and map the display ` +
+					`type before rocket uploads through this frame.`);
+			}
+			if (ascFit && ascFit.anisotropy > ASC_FIT_ANISOTROPY_MAX) {
+				todos.push(`${modelSlug}: cutout ${m0.cutout.w}×${m0.cutout.h} is not proportional to its ` +
+					`App Store size ${ascFit.size[0]}×${ascFit.size[1]} (scale ${ascFit.scale.x}× wide vs ` +
+					`${ascFit.scale.y}× tall) — screenshots are stretched ` +
+					`${Math.round(ascFit.anisotropy * 1000) / 10}% in this frame`);
+			}
+			if (isFoldable(src.name) || isFoldable(modelSlug)) {
+				todos.push(`${modelSlug}: looks like a folding device — it classifies as ` +
+					`'${src.deviceClass}' and inherits phone defaults. Confirm the screen count, the ` +
+					`ASC display type for each screen, and the registry category before shipping it.`);
+			}
 			if (!shadowed && !dryRun) {
 				const dir = join(DEVICES_DIR, modelSlug);
 				mkdirSync(dir, { recursive: true });
@@ -248,7 +281,11 @@ function importSource(src, { handTuned, ownedSlugs, force }) {
 				assets: !shadowed,
 				measured: {
 					pngW: m0.pngW, pngH: m0.pngH,
-					cutout: m0.cutout, corners: m0.corners, areaRatio: m0.areaRatio
+					cutout: m0.cutout, corners: m0.corners, areaRatio: m0.areaRatio,
+					...(extraCutouts.length ? { extraCutouts } : {}),
+					ascFit: ascFit
+						? { size: ascFit.size, scale: ascFit.scale, anisotropy: ascFit.anisotropy }
+						: null
 				},
 				// kept even when shadowed (reference for a future replacement run)
 				entry

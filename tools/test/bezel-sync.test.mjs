@@ -9,8 +9,9 @@ import { fileURLToPath } from 'node:url';
 import { deflateSync } from 'node:zlib';
 
 import {
-	classDefaults, classifyDevice, diffManifest, groupVariants, maskSVG,
-	overlapReport, parseBezelLinks, parseVariants, pngPayload, slugify, yearFromFile
+	ASC_FIT_ANISOTROPY_MAX, ascFitForCutout, classDefaults, classifyDevice, diffManifest, groupVariants,
+	isFoldable, maskSVG, overlapReport, parseBezelLinks, parseVariants, pngPayload,
+	slugify, yearFromFile
 } from '../lib/bezel-sync.mjs';
 import { measure } from '../measure-bezel.mjs';
 import { mergeDevices } from '../../src/lib/stores/devices.merge.js';
@@ -243,15 +244,16 @@ test('overlapReport maps hand-tuned slugs to same-class official sources', () =>
 });
 
 // ── measure() on a synthetic fixture PNG ──────────────────────────────────
-// 64×64 RGBA PNG: opaque frame with a fully transparent 24×16 hole at (20,24).
-function makeFixturePNG() {
+// 64×64 RGBA PNG: opaque frame with fully transparent rectangular hole(s).
+// Defaults to the single 24×16 hole at (20,24) the original tests assume.
+function makeFixturePNG(holes = [{ x0: 20, x1: 44, y0: 24, y1: 40 }]) {
 	const W = 64, H = 64;
 	const raw = Buffer.alloc(H * (1 + W * 4));
 	for (let y = 0; y < H; y++) {
 		const row = y * (1 + W * 4);
 		raw[row] = 0; // filter: none
 		for (let x = 0; x < W; x++) {
-			const inHole = x >= 20 && x < 44 && y >= 24 && y < 40;
+			const inHole = holes.some((k) => x >= k.x0 && x < k.x1 && y >= k.y0 && y < k.y1);
 			const o = row + 1 + x * 4;
 			raw[o] = 128; raw[o + 1] = 128; raw[o + 2] = 128;
 			raw[o + 3] = inHole ? 0 : 255;
@@ -299,4 +301,112 @@ test('measure() locates the transparent cutout in a fixture PNG', () => {
 	);
 	assert.deepEqual(m.corners, { tl: 0, tr: 0, bl: 0, br: 0 });
 	assert.equal(m.areaRatio, 1);
+});
+
+// ── new-device readiness: folding phones, unknown resolutions ─────────────
+test('parseVariants: fold-state segments become part of the model, not the colour', () => {
+	// Apple has shipped the state in either position; both must agree, and the
+	// colour must survive as a colour.
+	const trailing = parseVariants([
+		'iPhone Duo/iPhone Duo - Black - Unfolded - Portrait.png',
+		'iPhone Duo/iPhone Duo - Black - Folded - Portrait.png'
+	]);
+	assert.deepEqual(trailing.map((v) => [v.model, v.color, v.orientation]), [
+		['iPhone Duo Unfolded', 'Black', 'portrait'],
+		['iPhone Duo Folded', 'Black', 'portrait']
+	]);
+	const leading = parseVariants([
+		'iPhone Duo/iPhone Duo - Open - Desert Titanium - Portrait.png',
+		'iPhone Duo/iPhone Duo - Closed - Desert Titanium - Portrait.png'
+	]);
+	assert.deepEqual(leading.map((v) => [v.model, v.color]), [
+		['iPhone Duo Open', 'Desert Titanium'],
+		['iPhone Duo Closed', 'Desert Titanium']
+	]);
+	// …and the two states must not collapse onto one slug
+	assert.equal(groupVariants(trailing).size, 2);
+});
+
+test('parseVariants: a state word is never stripped when it is the only segment', () => {
+	const v = parseVariants(['Cover.png']);
+	assert.deepEqual([v[0].model, v[0].color], ['Cover', 'Standard']);
+});
+
+test('parseVariants: shipped Apple names are unaffected by state handling', () => {
+	const iphone = parseVariants(['iPhone 17 Pro/iPhone 17 Pro - Cosmic Orange - Portrait.png']);
+	assert.deepEqual([iphone[0].model, iphone[0].color], ['iPhone 17 Pro', 'Cosmic Orange']);
+	const watch = parseVariants(['Ocean Band/AW Ultra 3 - Black + Ocean Band Black.png']);
+	assert.deepEqual([watch[0].model, watch[0].color], ['AW Ultra 3', 'Black + Ocean Band Black']);
+});
+
+test('isFoldable flags folding names, not ordinary ones', () => {
+	for (const n of ['Bezel-iPhone-Duo.dmg', 'iPhone Fold', 'Bezel-iPhone-17-Flip.dmg', 'iphone-duo'])
+		assert.ok(isFoldable(n), n);
+	for (const n of ['Bezel-iPhone-18.dmg', 'iPhone 17 Pro Max', 'Bezel-iPad-Pro-(M5).dmg', 'MacBook Neo'])
+		assert.ok(!isFoldable(n), n);
+});
+
+test('ascFitForCutout matches exact and slightly-oversized cutouts', () => {
+	// iPad Pro M5 13": the cutout IS the screenshot size
+	const ipad = ascFitForCutout('ipad', 2064, 2752);
+	assert.deepEqual(ipad.size, [2064, 2752]);
+	assert.deepEqual(ipad.scale, { x: 1, y: 1 });
+	assert.equal(ipad.anisotropy, 0);
+	// Apple Watch Ultra: opening is the 410×502 shot plus ~6px of glass a side
+	const ultra = ascFitForCutout('watch', 422, 514);
+	assert.deepEqual(ultra.size, [410, 502]);
+	assert.ok(ultra.scale.x > 1.02 && ultra.scale.x < 1.04, `scale ${ultra.scale.x}`);
+	// iPhone 17 Pro Max native
+	assert.deepEqual(ascFitForCutout('iphone', 1320, 2868).size, [1320, 2868]);
+	// landscape cutouts match the portrait slot
+	assert.deepEqual(ascFitForCutout('ipad', 2752, 2064).size, [2064, 2752]);
+});
+
+test('ascFitForCutout returns null for a screen App Store Connect has no slot for', () => {
+	// a folding phone's near-square inner display
+	assert.equal(ascFitForCutout('iphone', 2076, 2152), null);
+	// a plausible-but-unlisted iPhone resolution
+	assert.equal(ascFitForCutout('iphone', 1400, 3040), null);
+	// unknown class
+	assert.equal(ascFitForCutout('display', 5120, 2880), null);
+});
+
+test('measure() reports every significant cutout, largest first', () => {
+	const file = join(mkdtempSync(join(tmpdir(), 'monkr-test-')), 'fold.png');
+	// 64×64 frame with a 24×16 main screen and a 10×8 cover screen
+	writeFileSync(file, makeFixturePNG([
+		{ x0: 20, x1: 44, y0: 24, y1: 40 },
+		{ x0: 4, x1: 14, y0: 4, y1: 12 }
+	]));
+	const m = measure(file);
+	assert.equal(m.cutouts.length, 2, 'both openings reported');
+	assert.deepEqual(
+		{ w: m.cutout.w, h: m.cutout.h }, { w: 24, h: 16 },
+		'cutout stays the largest opening'
+	);
+	assert.deepEqual(
+		m.cutouts.map((c) => [c.w, c.h]), [[24, 16], [10, 8]],
+		'largest first'
+	);
+});
+
+test('measure() ignores sub-threshold specks', () => {
+	const file = join(mkdtempSync(join(tmpdir(), 'monkr-test-')), 'speck.png');
+	// 24×16 = 384px main screen; a 2×2 = 4px speck is ~1% → below the 5% floor
+	writeFileSync(file, makeFixturePNG([
+		{ x0: 20, x1: 44, y0: 24, y1: 40 },
+		{ x0: 4, x1: 6, y0: 4, y1: 6 }
+	]));
+	assert.equal(measure(file).cutouts.length, 1);
+});
+
+test('ascFitForCutout exposes a non-proportional fit as anisotropy', () => {
+	// The real iPad Pro (M5) 11" opening: 1668 wide is the 11" screenshot width
+	// exactly, but 2420 tall is 1.3% more than the 2388-tall screenshot — art
+	// dropped in this frame is stretched vertically, not scaled.
+	const fit = ascFitForCutout('ipad', 1668, 2420);
+	assert.deepEqual(fit.size, [1668, 2388]);
+	assert.equal(fit.scale.x, 1);
+	assert.ok(fit.scale.y > 1.01, `scale.y ${fit.scale.y}`);
+	assert.ok(fit.anisotropy > ASC_FIT_ANISOTROPY_MAX, `anisotropy ${fit.anisotropy}`);
 });

@@ -9,6 +9,10 @@
 //   • cutout bounding box (x, y, w, h)
 //   • corner-radius estimate (from the inset of the transparent run on the
 //     top row of the cutout vs. the row at the vertical midpoint)
+//   • EVERY significant enclosed cutout (`cutouts`), largest first — a
+//     foldable ships a cover display alongside the main one, and a frame with
+//     two screens cannot be expressed by a single DeviceMeta entry. `cutout`
+//     stays the largest one so existing callers are unaffected.
 //
 // Zero dependencies: minimal PNG decoder (8-bit RGB/RGBA/gray+alpha,
 // non-interlaced) using node:zlib.
@@ -80,6 +84,12 @@ export function decodePNG(buf) {
 	return { width, height, alphaAt };
 }
 
+// An enclosed transparent region counts as a real second screen (rather than
+// an antialiasing speck or a camera pinhole) at >=5% of the main cutout's area.
+// A foldable's cover display is ~30-45% of its inner display, so 5% clears the
+// noise floor with room to spare.
+export const SECONDARY_CUTOUT_MIN = 0.05;
+
 export function measure(file, { thresh = 8 } = {}) {
 	const img = decodePNG(readFileSync(file));
 	const { width, height } = img;
@@ -117,8 +127,12 @@ export function measure(file, { thresh = 8 } = {}) {
 		if (y > 0) push(x, y - 1);
 		if (y < height - 1) push(x, y + 1);
 	}
-	// Find connected components of enclosed transparent pixels; keep largest.
+	// Find connected components of enclosed transparent pixels. The largest is
+	// the screen; the rest are kept (above SECONDARY_CUTOUT_MIN of the largest)
+	// so callers can spot multi-screen frames instead of silently importing
+	// half of one. Below that ratio they are antialiasing specks and dropped.
 	const comp = new Int32Array(width * height).fill(-1);
+	const components = [];
 	let best = null, bestId = -1;
 	let compId = 0;
 	for (let y0 = 0; y0 < height; y0++) {
@@ -144,6 +158,7 @@ export function measure(file, { thresh = 8 } = {}) {
 					if (comp[j] === -1 && !seen[j] && trans(nx, ny)) { comp[j] = id; st.push(j); }
 				}
 			}
+			components.push({ id, n, t, b, l, r });
 			if (!best || n > best.n) { best = { n, t, b, l, r }; bestId = id; }
 		}
 	}
@@ -186,10 +201,15 @@ export function measure(file, { thresh = 8 } = {}) {
 	// not a (rounded) rect — callers should fall back to a bbox mask.
 	const deficit = (corners.tl ** 2 + corners.tr ** 2 + corners.bl ** 2 + corners.br ** 2) * (1 - Math.PI / 4);
 	const areaRatio = best.n / (w * h - deficit);
+	const cutouts = components
+		.filter((c) => c.n >= best.n * SECONDARY_CUTOUT_MIN)
+		.sort((a, b2) => b2.n - a.n)
+		.map((c) => ({ x: c.l, y: c.t, w: c.r - c.l + 1, h: c.b - c.t + 1, area: c.n }));
 	return {
 		file, pngW: width, pngH: height,
 		content: { x: cL, y: cT, w: cR - cL + 1, h: cB - cT + 1 },
 		cutout: { x: l, y: t, w, h, area: best.n },
+		cutouts,
 		cornerRadius: corners.tl,
 		corners,
 		areaRatio: Math.round(areaRatio * 10000) / 10000,
@@ -220,5 +240,7 @@ else
   content: ${m.content.w}×${m.content.h} @ (${m.content.x},${m.content.y})
   cutout:  ${m.cutout.w}×${m.cutout.h} @ (${m.cutout.x},${m.cutout.y})
   corners  tl ${m.corners.tl} / tr ${m.corners.tr} / bl ${m.corners.bl} / br ${m.corners.br}px (area ratio ${m.areaRatio})`);
+		for (const c of m.cutouts.slice(1))
+			console.log(`  ALSO:    ${c.w}×${c.h} @ (${c.x},${c.y}) — second enclosed cutout (multi-screen frame?)`);
 	}
 }

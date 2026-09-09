@@ -65,7 +65,10 @@ Official Apple product-bezel frames are kept in sync with
 [Apple Design Resources](https://developer.apple.com/design/resources/) by
 `npm run sync-bezels` — it discovers every published `Bezel-*.dmg`, diffs
 against `static/devices/manifest.json`, measures the screen cutouts, and
-generates registry entries + mask SVGs automatically. See
+generates registry entries + mask SVGs automatically. A new device class
+shows up on its own — the run flags anything a human must decide (a frame
+with more than one screen, a cutout no App Store screenshot size fits, a
+folding device) instead of importing it silently. See
 [docs/APPLE-BEZELS.md](docs/APPLE-BEZELS.md) for the workflow, flags, and
 license notes.
 

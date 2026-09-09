@@ -1,6 +1,6 @@
 {
 	"version": 1,
-	"updatedAt": "2026-06-11T18:11:13.161Z",
+	"updatedAt": "2026-09-09T19:39:40.604Z",
 	"sources": {
 		"Bezel-Apple-Watch-Series-11-2025.dmg": {
 			"name": "Apple Watch Series 11",
@@ -160,7 +160,7 @@
 			"url": "https://devimages-cdn.apple.com/design/resources/download/Bezel-iPad-Pro-(M5).dmg",
 			"sha256": "ebde5f7249d416ad83d2d14881c31a0ae3ed8343643d26a0fbf61195aeb06f0f",
 			"size": 6787021,
-			"fetchedAt": "2026-06-11T17:54:49.652Z",
+			"fetchedAt": "2026-09-09T19:39:40.604Z",
 			"deviceClass": "ipad",
 			"status": "imported",
 			"managed": true,
@@ -192,7 +192,18 @@
 							"bl": 61,
 							"br": 61
 						},
-						"areaRatio": 1
+						"areaRatio": 1,
+						"ascFit": {
+							"size": [
+								1668,
+								2388
+							],
+							"scale": {
+								"x": 1,
+								"y": 1.0134
+							},
+							"anisotropy": 0.0134
+						}
 					},
 					"entry": {
 						"id": "ipad-pro-m5-11",
@@ -249,7 +260,18 @@
 							"bl": 61,
 							"br": 61
 						},
-						"areaRatio": 1
+						"areaRatio": 1,
+						"ascFit": {
+							"size": [
+								2064,
+								2752
+							],
+							"scale": {
+								"x": 1,
+								"y": 1
+							},
+							"anisotropy": 0
+						}
 					},
 					"entry": {
 						"id": "ipad-pro-m5-13",

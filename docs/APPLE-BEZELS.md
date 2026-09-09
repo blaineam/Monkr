@@ -128,8 +128,12 @@ Synced by the tool (geometry in `static/devices/manifest.json` and
 | `imac-m4-24` | Bezel-iMac-M4.dmg | 4760×4050 | 4480×2520 @ (140,150) | 0 px (square) |
 | `studio-display` | Bezel-Studio-Displays.dmg | 5400×4160 | 5120×2880 @ (140,140) | 0 px (square) |
 
-The iPad Pro cutouts are exactly the ASC screenshot sizes (1668×2420 /
-2064×2752); the iMac cutout is the 4.5K panel at 16:9 (4480×2520); the
+The 13″ iPad Pro cutout is exactly its ASC screenshot size (2064×2752). The
+11″ one is **not**: 1668 wide matches the 11″ screenshot exactly, but 2420
+tall is 1.3 % more than the 2388-tall screenshot, so art placed in that frame
+is stretched vertically rather than scaled (a sync run now TODOs this — see
+*Readiness checks* below). The iMac cutout is the 4.5K panel at 16:9
+(4480×2520); the
 Studio Display cutout is the 27" 5K panel (5120×2880), with the stand
 included in the frame art below it. All four Studio Display PNGs (2026 +
 XDR 2026, each on dark/light background) share identical geometry, so the
@@ -201,6 +205,53 @@ fit of the cutout's top-left curve).
   test screenshot + transparent background: zero `alpha<255` pixels remain in
   the screen's rounded corners.
 
+## Readiness checks — what a run refuses to decide for you
+
+Discovery is generic, so a bezel for a device Monkr has never seen appears in
+the next run by itself. Importing it blindly is the risk: `classifyDevice`
+maps anything named "iPhone" to class `iphone`, and every `iphone` passes
+`ROCKET_COVERED_CLASSES`, so a genuinely new form factor would inherit phone
+defaults and rocket's `/iphone/ → APP_IPHONE_65` fallback without a word.
+Three per-model checks close that gap; each raises a TODO in the summary and
+is recorded in `static/devices/manifest.json` under the model's `measured`
+block.
+
+**More than one screen.** `measure()` returns `cutouts` — *every* enclosed
+transparent region at ≥5 % of the largest one's area, largest first — not
+just the winner. `cutout` still names the largest, so existing callers are
+unchanged. A frame with two openings (a foldable's inner + cover display)
+imports only the largest: `DeviceMeta` carries one `svgW`/`svgH`/
+`screenLeft`/`screenTop`, so the second opening gets no mask and the page
+background shows through it on a transparent export — the same failure the
+watch-corner overscan fixed, but unfixable without a registry entry per
+screen. The run says so rather than shipping half a device.
+
+**A screen App Store Connect has no slot for.** `ascFitForCutout()` matches
+the measured cutout against `ASC_SCREENSHOT_SIZES` (either orientation, 5 %
+tolerance — Apple's Ultra opening is the 410×502 screenshot plus ~6 px of
+flat glass a side). No match means a new form factor or a resolution Apple
+has added, and `_shared/screenshots/lib/display-types.mjs` — which is
+authoritative, and which actually gates uploads — needs the size before
+rocket ships anything through the frame. The table here is a **local copy for
+this check only**; keep rocket's as the source of truth.
+
+The fit is reported per axis, because an opening can match a slot's size
+while being the wrong *shape*: `anisotropy` above 0.5 % means a screenshot is
+stretched in that frame, not scaled. That is what caught the 11″ iPad Pro.
+
+**A folding device.** `isFoldable()` matches fold / flip / duo in a source or
+model name and TODOs it, because a foldable classifies as an ordinary
+`iphone` and nothing else in the pipeline would notice. `parseVariants` also
+treats `STATE_SEGMENTS` (open, closed, folded, unfolded, front, back, inner,
+outer, cover) as part of the **model** wherever they appear in the filename,
+not as a colour — Apple has shipped state segments both before and after the
+colour, and without this `iPhone Duo - Black - Unfolded` yields a device
+whose colour is called "Unfolded" and whose two states collide on one slug.
+A state word that is the only segment left is never stripped.
+
+None of these block an import; they annotate it. Decide, then hand-tune the
+registry entry (or split it per screen) and re-run with `--force <slug>`.
+
 ## Adding more official bezels
 
 Preferred: `npm run sync-bezels -- --import <pattern>` (see above). The
@@ -221,7 +272,9 @@ frames were made):
 
 ## Other official bezels available (not yet integrated)
 
-As of 2026-06-11 the resources page also offers (run
+As of 2026-09-09 the resources page publishes 15 bezel sources — no iPhone 18
+and no folding device yet; the newest iPhone source is `Bezel-iPhone-17.dmg`.
+Beyond what is imported above it also offers (run
 `npm run sync-bezels -- --dry-run` for the live list): Apple TV,
 Apple Watch Ultra 2 (2024), iPhone 16, iPad Air (M4), iPad (A16),
 iPad mini (A17 Pro), MacBook Pro (M5), MacBook Air (M5), and MacBook Neo —

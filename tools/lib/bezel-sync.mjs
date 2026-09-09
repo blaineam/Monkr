@@ -24,6 +24,88 @@ export const SLUG_ALIASES = {
 	'iphone-air': 'iphone-17-air' // Apple says "iPhone Air"; Monkr shipped it as iPhone 17 Air
 };
 
+/**
+ * Segments Apple uses for a *state* of the same device rather than a colour:
+ * a foldable ships open/closed art, and some bezels ship a rear view. They can
+ * appear in any position in the " - " separated filename, so they are pulled
+ * out and appended to the MODEL name — `iPhone Duo - Black - Unfolded` and
+ * `iPhone Duo - Unfolded - Black` both yield model "iPhone Duo Unfolded",
+ * colour "Black". Without this the trailing form produces a device whose
+ * colour is called "Unfolded" and whose two states collide on one slug.
+ */
+export const STATE_SEGMENTS = new Set([
+	'open', 'closed', 'folded', 'unfolded', 'front', 'back', 'inner', 'outer', 'cover'
+]);
+
+/**
+ * Does this source name describe a folding device? Used only to raise a TODO:
+ * a foldable still classifies as `iphone`, so nothing else in the pipeline
+ * would notice that one DeviceMeta entry cannot express two screens.
+ */
+export function isFoldable(name) {
+	return /\b(fold(able|s)?|flip|duo)\b/i.test(String(name).replace(/[-_]/g, ' '));
+}
+
+/**
+ * App Store Connect screenshot sizes, per device class, portrait.
+ *
+ * NOT authoritative — rocket's `_shared/screenshots/lib/display-types.mjs`
+ * is, and it is what actually gates uploads. This copy exists so a sync run
+ * can answer one question locally: does this frame's cutout correspond to a
+ * screenshot slot Apple accepts today? A frame that matches nothing is either
+ * a new form factor (a foldable's inner display) or a resolution Apple has
+ * added, and in both cases a human must map it before rocket ships anything
+ * through it. Class-level coverage (ROCKET_COVERED_CLASSES) cannot catch that
+ * — every iPhone passes it, including one with a screen no slot accepts.
+ */
+export const ASC_SCREENSHOT_SIZES = {
+	iphone: [[1320, 2868], [1290, 2796], [1284, 2778], [1242, 2688], [1206, 2622],
+		[1179, 2556], [1170, 2532], [1125, 2436], [1242, 2208], [750, 1334]],
+	ipad: [[2064, 2752], [2048, 2732], [1668, 2388], [1640, 2360], [1488, 2266],
+		[1668, 2224], [1536, 2048]],
+	watch: [[410, 502], [416, 496], [396, 484], [368, 448], [312, 390]],
+	tv: [[1920, 1080], [3840, 2160]],
+	mac: [[1280, 800], [1440, 900], [2560, 1600], [2880, 1800]]
+};
+
+/**
+ * Closest ASC screenshot size for a measured cutout, in either orientation.
+ * Cutouts are not always the screenshot size — Apple's Ultra bezel opening is
+ * the 410x502 screenshot plus ~6px of flat glass per side (2.4%) — so the fit
+ * is proportional. `scale` is per-axis on purpose: when x and y differ, a
+ * screenshot dropped into that opening is *stretched*, not just enlarged, and
+ * that is worth knowing before it becomes a store asset.
+ * @returns {{size: [number,number], scale: {x: number, y: number},
+ *            drift: number, anisotropy: number}|null}
+ *   null when nothing is within `tol` on both axes.
+ */
+export function ascFitForCutout(deviceClass, w, h, { tol = 0.05 } = {}) {
+	const sizes = ASC_SCREENSHOT_SIZES[deviceClass];
+	if (!sizes || !w || !h) return null;
+	const r4 = (v) => Math.round(v * 10000) / 10000;
+	let best = null;
+	for (const [sw, sh] of sizes) {
+		for (const [a, b] of [[sw, sh], [sh, sw]]) {
+			const dx = Math.abs(w - a) / a, dy = Math.abs(h - b) / b;
+			const drift = Math.max(dx, dy);
+			if (drift > tol) continue;
+			const sx = w / a, sy = h / b;
+			if (!best || drift < best.drift) {
+				best = {
+					size: [sw, sh],
+					scale: { x: r4(sx), y: r4(sy) },
+					drift: r4(drift),
+					anisotropy: r4(Math.abs(sx - sy) / Math.min(sx, sy))
+				};
+			}
+		}
+	}
+	return best;
+}
+
+/** A fit this uneven stretches the screenshot rather than scaling it. */
+export const ASC_FIT_ANISOTROPY_MAX = 0.005;
+
 /** Decode the handful of HTML entities Apple's page uses in headings. */
 export function decodeEntities(s) {
 	return s
@@ -113,8 +195,11 @@ export function slugify(s) {
  *   iPad:   PNG/<Model> - <Color> - <Portrait|Landscape>.png
  *   Watch:  PNG/<Band>/<Model> - <size>mm - <Case + Band variant>.png
  *   iMac:   PNG/<Model> <Color>.png      (no " - " separators)
+ *   Fold:   PNG/<Model> - <Open|Closed|…> - <Color> - <Portrait>.png
  * Rules, in order:
  *   • stem = filename minus .png; pop a trailing Portrait/Landscape segment
+ *   • pull out any STATE_SEGMENTS (open/closed/front/…) — they name a state
+ *     of the device, not a colour, and are appended to the model name
  *   • ≥2 " - " segments → color = last segment, model = the rest joined
  *   • 1 segment → model = longest common prefix across the group's stems,
  *     color = remainder (single-file groups → color "Standard")
@@ -126,13 +211,22 @@ export function parseVariants(relPaths) {
 		.filter((p) => p.toLowerCase().endsWith('.png'))
 		.map((rel) => {
 			const stem = rel.split('/').pop().replace(/\.png$/i, '');
-			const segs = stem.split(' - ').map((s) => s.trim());
+			let segs = stem.split(' - ').map((s) => s.trim());
 			let orientation = null;
 			const last = segs[segs.length - 1]?.toLowerCase();
 			if (last === 'portrait' || last === 'landscape') {
 				orientation = segs.pop().toLowerCase();
 			}
-			return { rel, stem, segs, orientation };
+			// State segments belong to the model, whatever position they hold.
+			// Never strip the only segment left — a file named just "Open.png"
+			// has no model to attach it to.
+			const states = segs.filter((g) => STATE_SEGMENTS.has(g.toLowerCase()));
+			if (states.length && states.length < segs.length) {
+				segs = segs.filter((g) => !STATE_SEGMENTS.has(g.toLowerCase()));
+			} else {
+				states.length = 0;
+			}
+			return { rel, stem, segs, orientation, states };
 		});
 	// longest common prefix of single-segment stems (per parent dir group)
 	const singles = entries.filter((e) => e.segs.length === 1);
@@ -147,7 +241,7 @@ export function parseVariants(relPaths) {
 		}
 		lcp = lcp.replace(/\S*$/, ''); // cut back to a word boundary
 	}
-	return entries.map(({ rel, segs, orientation }) => {
+	return entries.map(({ rel, segs, orientation, states }) => {
 		let model, color;
 		if (segs.length >= 2) {
 			color = segs[segs.length - 1];
@@ -159,6 +253,7 @@ export function parseVariants(relPaths) {
 			model = segs[0];
 			color = 'Standard';
 		}
+		if (states.length) model = `${model} ${states.join(' ')}`;
 		return { rel, model, color, orientation };
 	});
 }
