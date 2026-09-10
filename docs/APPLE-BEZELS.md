@@ -123,6 +123,12 @@ Synced by the tool (geometry in `static/devices/manifest.json` and
 
 | Slug | Source DMG | Frame PNG | Screen cutout | Corner radius |
 | --- | --- | --- | --- | --- |
+| `iphone-18-pro` | Bezel-iPhone-18.dmg | 1350×2760 | 1206×2622 @ (72,69) | 196 px |
+| `iphone-18-pro-max` | Bezel-iPhone-18.dmg | 1470×3000 | 1320×2868 @ (75,66) | 198 px |
+| `iphone-duo-inner-open` | Bezel-iPhone-Duo.dmg | 2247×3093 | 2007×2853 @ (120,120) | 168 px |
+| `iphone-duo-outer-closed` | Bezel-iPhone-Duo.dmg | 1574×2194 | 1398×2034 @ (88,80) | 26 px |
+| `iphone-duo-outer-open` | Bezel-iPhone-Duo.dmg | 3056×2194 | 1398×2034 @ (1570,80) | 26 px |
+| `macbook-neo` | Bezel-MacBook-Neo.dmg | 3220×2100 | 2408×1506 @ (406,297) | 35 px |
 | `ipad-pro-m5-11` | Bezel-iPad-Pro-(M5).dmg | 1880×2640 | 1668×2420 @ (106,110) | 61 px |
 | `ipad-pro-m5-13` | Bezel-iPad-Pro-(M5).dmg | 2300×3000 | 2064×2752 @ (118,124) | 61 px |
 | `imac-m4-24` | Bezel-iMac-M4.dmg | 4760×4050 | 4480×2520 @ (140,150) | 0 px (square) |
@@ -260,6 +266,51 @@ A state word that is the only segment left is never stripped.
 None of these block an import; they annotate it. Decide, then hand-tune the
 registry entry (or split it per screen) and re-run with `--force <slug>`.
 
+## iPhone 18, iPhone Duo and MacBook Neo (imported 2026-09-10)
+
+**iPhone 18** — `Bezel-iPhone-18.dmg` carries only **Pro** and **Pro Max**
+(4 colours each: Black, Burgundy, Glacier, Silver). There is no base iPhone 18
+or Air bezel on the page. Both cutouts are *exactly* App Store screenshot
+sizes — 1206×2622 (6.3″) and 1320×2868 (6.9″) — so screenshots map 1:1 and the
+readiness checks pass silently. Neither slug collides with Monkr's hand-tuned
+art, so unlike iPhone 17 these import Apple's own frames.
+
+**MacBook Neo** — one model, 4 colours (Blush, Citrus, Indigo, Silver). Its
+2408×1506 opening is 16:10 like every other Mac but is not itself an accepted
+`APP_DESKTOP` size, so a run TODOs it. That is informational: set the canvas to
+an accepted size (2560×1600 is the closest, a ~6 % scale down) rather than to
+the frame's native panel.
+
+**iPhone Duo** — the foldable, and the case the readiness checks were written
+for. Apple ships **three physical screens** in one DMG:
+
+| Slug | What it is | Cutout |
+| --- | --- | --- |
+| `iphone-duo-inner-open` | the unfolded inner display | 2007×2853 |
+| `iphone-duo-outer-closed` | the cover display, folded | 1398×2034 |
+| `iphone-duo-outer-open` | the cover display while unfolded (offset right) | 1398×2034 @ x=1570 |
+
+Two colours each: Night Sky, Star White.
+
+**The naming trap.** Apple packs screen, state *and* orientation into a single
+segment: `iPhone Duo - Night Sky - Inner Open Portrait.png`. A naive read takes
+the last segment as the colour, which makes the **model** "iPhone Duo Night
+Sky" and the **colour** "Inner Open Portrait" — inverted, and it collapses
+three screens onto two slugs. `parseVariants` therefore inspects the words
+*inside* the final segment: it pops a trailing orientation, and consumes the
+segment as a state qualifier only when **every** remaining word is in
+`STATE_SEGMENTS`. That last condition is what keeps a multi-word colour such as
+`Black + Ocean Band Black` from being eaten. The first import ran before this
+fix and produced `iphone-duo-night-sky` / `iphone-duo-star-white`; the
+colour-geometry check caught it immediately, because the mis-grouped "colours"
+had wildly different frame sizes.
+
+**Neither Duo screen has an App Store display type.** 2007×2853 and 1398×2034
+match nothing in `display-types.mjs`, so a sync run TODOs both and rocket will
+refuse to upload through these frames. That is correct — they are marketing
+frames until Apple publishes screenshot slots for the form factor. Do not
+invent sizes for them.
+
 ## Adding more official bezels
 
 Preferred: `npm run sync-bezels -- --import <pattern>` (see above). The
@@ -280,8 +331,7 @@ frames were made):
 
 ## Other official bezels available (not yet integrated)
 
-As of 2026-09-09 the resources page publishes 15 bezel sources — no iPhone 18
-and no folding device yet; the newest iPhone source is `Bezel-iPhone-17.dmg`.
+As of 2026-09-10 the resources page publishes 17 bezel sources.
 Beyond what is imported above it also offers (run
 `npm run sync-bezels -- --dry-run` for the live list): Apple TV,
 Apple Watch Ultra 2 (2024), iPhone 16, iPad Air (M4), iPad (A16),

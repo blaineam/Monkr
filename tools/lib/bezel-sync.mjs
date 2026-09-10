@@ -197,11 +197,14 @@ export function slugify(s) {
  *   iPad:   PNG/<Model> - <Color> - <Portrait|Landscape>.png
  *   Watch:  PNG/<Band>/<Model> - <size>mm - <Case + Band variant>.png
  *   iMac:   PNG/<Model> <Color>.png      (no " - " separators)
- *   Fold:   PNG/<Model> - <Open|Closed|…> - <Color> - <Portrait>.png
+ *   Fold:   PNG/<Model> - <Color> - <Inner|Outer> <Open|Closed> [<Orient>].png
  * Rules, in order:
  *   • stem = filename minus .png; pop a trailing Portrait/Landscape segment
  *   • pull out any STATE_SEGMENTS (open/closed/front/…) — they name a state
- *     of the device, not a colour, and are appended to the model name
+ *     of the device, not a colour, and are appended to the model name. Apple
+ *     packs them either as their own segment ("… - Open - Black") or as words
+ *     inside the final segment together with the orientation
+ *     ("… - Night Sky - Inner Open Portrait"), so both forms are handled.
  *   • ≥2 " - " segments → color = last segment, model = the rest joined
  *   • 1 segment → model = longest common prefix across the group's stems,
  *     color = remainder (single-file groups → color "Standard")
@@ -215,20 +218,39 @@ export function parseVariants(relPaths) {
 			const stem = rel.split('/').pop().replace(/\.png$/i, '');
 			let segs = stem.split(' - ').map((s) => s.trim());
 			let orientation = null;
-			const last = segs[segs.length - 1]?.toLowerCase();
-			if (last === 'portrait' || last === 'landscape') {
-				orientation = segs.pop().toLowerCase();
+			const isOrient = (w) => w === 'portrait' || w === 'landscape';
+			// The final segment may be a bare orientation ("Portrait"), or a run
+			// of state words optionally ending in one ("Inner Open Portrait").
+			// Consume it only when EVERY remaining word is a state word —
+			// otherwise it is a colour and must be left alone ("Black + Ocean
+			// Band Black" contains no state words and stays the colour).
+			const tailWords = segs[segs.length - 1]?.split(/\s+/).filter(Boolean) ?? [];
+			const tailLower = tailWords.map((w) => w.toLowerCase());
+			let tailStates = [];
+			if (tailLower.length && isOrient(tailLower[tailLower.length - 1])) {
+				const rest = tailLower.slice(0, -1);
+				if (rest.every((w) => STATE_SEGMENTS.has(w))) {
+					orientation = tailLower[tailLower.length - 1];
+					tailStates = tailWords.slice(0, -1);
+					segs.pop();
+				}
+			} else if (tailLower.length && tailLower.every((w) => STATE_SEGMENTS.has(w))) {
+				tailStates = tailWords;
+				segs.pop();
 			}
-			// State segments belong to the model, whatever position they hold.
-			// Never strip the only segment left — a file named just "Open.png"
-			// has no model to attach it to.
+			// Whole-segment state form ("… - Open - Black"). Never strip the only
+			// segment left — a file named just "Open.png" has no model to attach
+			// it to.
 			const states = segs.filter((g) => STATE_SEGMENTS.has(g.toLowerCase()));
 			if (states.length && states.length < segs.length) {
 				segs = segs.filter((g) => !STATE_SEGMENTS.has(g.toLowerCase()));
 			} else {
 				states.length = 0;
 			}
-			return { rel, stem, segs, orientation, states };
+			// If consuming the tail left nothing but the model, put it back as
+			// the colour so a single-colour fold set still groups sanely.
+			if (!segs.length) { segs = [stem]; tailStates = []; }
+			return { rel, stem, segs, orientation, states: [...states, ...tailStates] };
 		});
 	// longest common prefix of single-segment stems (per parent dir group)
 	const singles = entries.filter((e) => e.segs.length === 1);

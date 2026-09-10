@@ -1,6 +1,6 @@
 {
 	"version": 1,
-	"updatedAt": "2026-09-09T20:00:59.801Z",
+	"updatedAt": "2026-09-10T07:40:34.469Z",
 	"sources": {
 		"Bezel-Apple-Watch-Series-11-2025.dmg": {
 			"name": "Apple Watch Series 11",
@@ -683,14 +683,86 @@
 		"Bezel-MacBook-Neo.dmg": {
 			"name": "MacBook Neo",
 			"url": "https://devimages-cdn.apple.com/design/resources/download/Bezel-MacBook-Neo.dmg",
-			"sha256": null,
-			"size": null,
-			"fetchedAt": null,
-			"discoveredAt": "2026-06-11T17:54:53.785Z",
+			"sha256": "28b78c40d076ad3382b993c8da7739918b5e9e67d38b368319a21cf08968b87c",
+			"size": 24631781,
+			"fetchedAt": "2026-09-10T07:37:55.422Z",
 			"deviceClass": "mac",
-			"status": "available",
-			"managed": false,
-			"slugs": {}
+			"status": "imported",
+			"managed": true,
+			"slugs": {
+				"macbook-neo": {
+					"colors": [
+						"blush",
+						"citrus",
+						"indigo",
+						"silver"
+					],
+					"appleFiles": {
+						"blush": "MacBook Neo - Blush.png",
+						"citrus": "MacBook Neo - Citrus.png",
+						"indigo": "MacBook Neo - Indigo.png",
+						"silver": "MacBook Neo - Silver.png"
+					},
+					"shadowed": false,
+					"assets": true,
+					"measured": {
+						"pngW": 3220,
+						"pngH": 2100,
+						"cutout": {
+							"x": 406,
+							"y": 297,
+							"w": 2408,
+							"h": 1506,
+							"area": 3625892
+						},
+						"corners": {
+							"tl": 35,
+							"tr": 34,
+							"bl": 0,
+							"br": 0
+						},
+						"areaRatio": 1,
+						"ascFit": null
+					},
+					"entry": {
+						"id": "macbook-neo",
+						"name": "MacBook Neo",
+						"category": "laptop",
+						"brand": "Apple",
+						"slug": "macbook-neo",
+						"pngW": 3220,
+						"pngH": 2100,
+						"svgW": 2408,
+						"svgH": 1506,
+						"year": 2026,
+						"screenTop": 14.143,
+						"screenLeft": 12.609,
+						"notch": "none",
+						"colors": [
+							{
+								"id": "blush",
+								"name": "Blush",
+								"slug": "blush"
+							},
+							{
+								"id": "citrus",
+								"name": "Citrus",
+								"slug": "citrus"
+							},
+							{
+								"id": "indigo",
+								"name": "Indigo",
+								"slug": "indigo"
+							},
+							{
+								"id": "silver",
+								"name": "Silver",
+								"slug": "silver"
+							}
+						]
+					}
+				}
+			}
 		},
 		"Bezel-MacBook-Pro-M5.dmg": {
 			"name": "MacBook Pro M5",
@@ -781,6 +853,368 @@
 								"id": "xdr-2026-on-light-background",
 								"name": "XDR 2026 On Light Background",
 								"slug": "xdr-2026-on-light-background"
+							}
+						]
+					}
+				}
+			}
+		},
+		"Bezel-iPhone-18.dmg": {
+			"name": "iPhone 18",
+			"url": "https://devimages-cdn.apple.com/design/resources/download/Bezel-iPhone-18.dmg",
+			"sha256": "b27e827d156c9646048c2462cbba1c55c4267917083d8d43141086ea285d1792",
+			"size": 144149642,
+			"fetchedAt": "2026-09-10T07:37:42.336Z",
+			"deviceClass": "iphone",
+			"status": "imported",
+			"managed": true,
+			"slugs": {
+				"iphone-18-pro": {
+					"colors": [
+						"black",
+						"burgundy",
+						"glacier",
+						"silver"
+					],
+					"appleFiles": {
+						"black": "iPhone 18 Pro/iPhone 18 Pro - Black - Portrait.png",
+						"burgundy": "iPhone 18 Pro/iPhone 18 Pro - Burgundy - Portrait.png",
+						"glacier": "iPhone 18 Pro/iPhone 18 Pro - Glacier - Portrait.png",
+						"silver": "iPhone 18 Pro/iPhone 18 Pro - Silver - Portrait.png"
+					},
+					"shadowed": false,
+					"assets": true,
+					"measured": {
+						"pngW": 1350,
+						"pngH": 2760,
+						"cutout": {
+							"x": 72,
+							"y": 69,
+							"w": 1206,
+							"h": 2622,
+							"area": 3101187
+						},
+						"corners": {
+							"tl": 196,
+							"tr": 195,
+							"bl": 196,
+							"br": 194
+						},
+						"areaRatio": 0.991,
+						"ascFit": {
+							"size": [
+								1206,
+								2622
+							],
+							"scale": {
+								"x": 1,
+								"y": 1
+							},
+							"anisotropy": 0
+						}
+					},
+					"entry": {
+						"id": "iphone-18-pro",
+						"name": "iPhone 18 Pro",
+						"category": "phone",
+						"brand": "Apple",
+						"slug": "iphone-18-pro",
+						"pngW": 1350,
+						"pngH": 2760,
+						"svgW": 1206,
+						"svgH": 2622,
+						"year": 2026,
+						"screenTop": 2.5,
+						"screenLeft": 5.333,
+						"notch": "dynamic-island",
+						"colors": [
+							{
+								"id": "black",
+								"name": "Black",
+								"slug": "black"
+							},
+							{
+								"id": "burgundy",
+								"name": "Burgundy",
+								"slug": "burgundy"
+							},
+							{
+								"id": "glacier",
+								"name": "Glacier",
+								"slug": "glacier"
+							},
+							{
+								"id": "silver",
+								"name": "Silver",
+								"slug": "silver"
+							}
+						]
+					}
+				},
+				"iphone-18-pro-max": {
+					"colors": [
+						"black",
+						"burgundy",
+						"glacier",
+						"silver"
+					],
+					"appleFiles": {
+						"black": "iPhone 18 Pro Max/iPhone 18 Pro Max - Black - Portrait.png",
+						"burgundy": "iPhone 18 Pro Max/iPhone 18 Pro Max - Burgundy - Portrait.png",
+						"glacier": "iPhone 18 Pro Max/iPhone 18 Pro Max - Glacier - Portrait.png",
+						"silver": "iPhone 18 Pro Max/iPhone 18 Pro Max - Silver - Portrait.png"
+					},
+					"shadowed": false,
+					"assets": true,
+					"measured": {
+						"pngW": 1470,
+						"pngH": 3000,
+						"cutout": {
+							"x": 75,
+							"y": 66,
+							"w": 1320,
+							"h": 2868,
+							"area": 3724614
+						},
+						"corners": {
+							"tl": 198,
+							"tr": 197,
+							"bl": 198,
+							"br": 197
+						},
+						"areaRatio": 0.9926,
+						"ascFit": {
+							"size": [
+								1320,
+								2868
+							],
+							"scale": {
+								"x": 1,
+								"y": 1
+							},
+							"anisotropy": 0
+						}
+					},
+					"entry": {
+						"id": "iphone-18-pro-max",
+						"name": "iPhone 18 Pro Max",
+						"category": "phone",
+						"brand": "Apple",
+						"slug": "iphone-18-pro-max",
+						"pngW": 1470,
+						"pngH": 3000,
+						"svgW": 1320,
+						"svgH": 2868,
+						"year": 2026,
+						"screenTop": 2.2,
+						"screenLeft": 5.102,
+						"notch": "dynamic-island",
+						"colors": [
+							{
+								"id": "black",
+								"name": "Black",
+								"slug": "black"
+							},
+							{
+								"id": "burgundy",
+								"name": "Burgundy",
+								"slug": "burgundy"
+							},
+							{
+								"id": "glacier",
+								"name": "Glacier",
+								"slug": "glacier"
+							},
+							{
+								"id": "silver",
+								"name": "Silver",
+								"slug": "silver"
+							}
+						]
+					}
+				}
+			}
+		},
+		"Bezel-iPhone-Duo.dmg": {
+			"name": "iPhone Duo",
+			"url": "https://devimages-cdn.apple.com/design/resources/download/Bezel-iPhone-Duo.dmg",
+			"sha256": "f616ee087d310ef089b2261a5f93bd2d52d78cb5fcf63914878a2f0926adac28",
+			"size": 346669714,
+			"fetchedAt": "2026-09-10T07:40:34.469Z",
+			"deviceClass": "iphone",
+			"status": "imported",
+			"managed": true,
+			"slugs": {
+				"iphone-duo-inner-open": {
+					"colors": [
+						"night-sky",
+						"star-white"
+					],
+					"appleFiles": {
+						"night-sky": "iPhone Duo - Night Sky - Inner Open Portrait.png",
+						"star-white": "iPhone Duo - Star White - Inner Open Portrait.png"
+					},
+					"shadowed": false,
+					"assets": true,
+					"measured": {
+						"pngW": 2247,
+						"pngH": 3093,
+						"cutout": {
+							"x": 120,
+							"y": 120,
+							"w": 2007,
+							"h": 2853,
+							"area": 5701709
+						},
+						"corners": {
+							"tl": 168,
+							"tr": 167,
+							"bl": 168,
+							"br": 167
+						},
+						"areaRatio": 1,
+						"ascFit": null
+					},
+					"entry": {
+						"id": "iphone-duo-inner-open",
+						"name": "iPhone Duo Inner Open",
+						"category": "phone",
+						"brand": "Apple",
+						"slug": "iphone-duo-inner-open",
+						"pngW": 2247,
+						"pngH": 3093,
+						"svgW": 2007,
+						"svgH": 2853,
+						"year": 2026,
+						"screenTop": 3.88,
+						"screenLeft": 5.34,
+						"notch": "dynamic-island",
+						"colors": [
+							{
+								"id": "night-sky",
+								"name": "Night Sky",
+								"slug": "night-sky"
+							},
+							{
+								"id": "star-white",
+								"name": "Star White",
+								"slug": "star-white"
+							}
+						]
+					}
+				},
+				"iphone-duo-outer-closed": {
+					"colors": [
+						"night-sky",
+						"star-white"
+					],
+					"appleFiles": {
+						"night-sky": "iPhone Duo - Night Sky - Outer Closed Portrait.png",
+						"star-white": "iPhone Duo - Star White - Outer Closed Portrait.png"
+					},
+					"shadowed": false,
+					"assets": true,
+					"measured": {
+						"pngW": 1574,
+						"pngH": 2194,
+						"cutout": {
+							"x": 88,
+							"y": 80,
+							"w": 1398,
+							"h": 2034,
+							"area": 2819500
+						},
+						"corners": {
+							"tl": 26,
+							"tr": 181,
+							"bl": 26,
+							"br": 181
+						},
+						"areaRatio": 0.9966,
+						"ascFit": null
+					},
+					"entry": {
+						"id": "iphone-duo-outer-closed",
+						"name": "iPhone Duo Outer Closed",
+						"category": "phone",
+						"brand": "Apple",
+						"slug": "iphone-duo-outer-closed",
+						"pngW": 1574,
+						"pngH": 2194,
+						"svgW": 1398,
+						"svgH": 2034,
+						"year": 2026,
+						"screenTop": 3.646,
+						"screenLeft": 5.591,
+						"notch": "dynamic-island",
+						"colors": [
+							{
+								"id": "night-sky",
+								"name": "Night Sky",
+								"slug": "night-sky"
+							},
+							{
+								"id": "star-white",
+								"name": "Star White",
+								"slug": "star-white"
+							}
+						]
+					}
+				},
+				"iphone-duo-outer-open": {
+					"colors": [
+						"night-sky",
+						"star-white"
+					],
+					"appleFiles": {
+						"night-sky": "iPhone Duo - Night Sky - Outer Open.png",
+						"star-white": "iPhone Duo - Star White - Outer Open.png"
+					},
+					"shadowed": false,
+					"assets": true,
+					"measured": {
+						"pngW": 3056,
+						"pngH": 2194,
+						"cutout": {
+							"x": 1570,
+							"y": 80,
+							"w": 1398,
+							"h": 2034,
+							"area": 2819500
+						},
+						"corners": {
+							"tl": 26,
+							"tr": 181,
+							"bl": 26,
+							"br": 181
+						},
+						"areaRatio": 0.9966,
+						"ascFit": null
+					},
+					"entry": {
+						"id": "iphone-duo-outer-open",
+						"name": "iPhone Duo Outer Open",
+						"category": "phone",
+						"brand": "Apple",
+						"slug": "iphone-duo-outer-open",
+						"pngW": 3056,
+						"pngH": 2194,
+						"svgW": 1398,
+						"svgH": 2034,
+						"year": 2026,
+						"screenTop": 3.646,
+						"screenLeft": 51.374,
+						"notch": "dynamic-island",
+						"colors": [
+							{
+								"id": "night-sky",
+								"name": "Night Sky",
+								"slug": "night-sky"
+							},
+							{
+								"id": "star-white",
+								"name": "Star White",
+								"slug": "star-white"
 							}
 						]
 					}

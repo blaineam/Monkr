@@ -50,11 +50,11 @@ Pixel-perfect frames for the devices people actually use:
 
 | Category | Devices |
 |----------|---------|
-| **iPhone** | 17 Pro Max, 17 Pro, 17 Air, 17, 16 Pro Max, 16 Pro, 16 Plus, 16, 15 series, 14 series |
+| **iPhone** | 18 Pro Max, 18 Pro & iPhone Duo — inner/outer, folded & unfolded — (official Apple bezels); 17 Pro Max, 17 Pro, 17 Air, 17, 16 Pro Max, 16 Pro, 16 Plus, 16, 15 series, 14 series |
 | **Android** | Pixel 7 Pro, Nothing Phone |
 | **iPad** | Pro (M5) 13" & 11" (official Apple bezels), Pro 13", Pro 11", Air, Mini |
 | **Mac** | MacBook Pro 16", MacBook Air M2, MacBook Air 13" |
-| **Desktop** | iMac M4 24" (official Apple bezel), iMac 24", iMac Pro, Pro Display XDR |
+| **Desktop** | iMac M4 24" & MacBook Neo (official Apple bezels), iMac 24", iMac Pro, Pro Display XDR |
 | **Watch** | Apple Watch Series 11 46mm, Apple Watch Ultra 3 49mm — official Apple product bezels (see [docs/APPLE-BEZELS.md](docs/APPLE-BEZELS.md)) |
 | **Misc** | Apple Studio Display / Studio Display XDR 2026 (official Apple bezels, marketing frames only — no ASC screenshot type) |
 | **Other** | Apple TV 4K, Flat Screen TV, Browser (Light & Dark) |

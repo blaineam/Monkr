@@ -411,3 +411,48 @@ test('ascFitForCutout exposes a non-proportional fit as anisotropy', () => {
 	assert.ok(fit.scale.y > 1.01, `scale.y ${fit.scale.y}`);
 	assert.ok(fit.anisotropy > ASC_FIT_ANISOTROPY_MAX, `anisotropy ${fit.anisotropy}`);
 });
+
+// ── the shipped iPhone Duo layout (Apple's real filenames) ────────────────
+test("parseVariants: Duo packs screen+state+orientation into ONE segment", () => {
+	// Apple ships `iPhone Duo - <Colour> - <Inner|Outer> <Open|Closed> [<Orient>]`.
+	// The naive read makes "Night Sky" the model and "Inner Open Portrait" the
+	// colour — inverted, and it collapses all three screens onto two slugs.
+	const real = [
+		'iPhone Duo - Night Sky - Inner Open Landscape.png',
+		'iPhone Duo - Night Sky - Inner Open Portrait.png',
+		'iPhone Duo - Night Sky - Outer Closed Landscape.png',
+		'iPhone Duo - Night Sky - Outer Closed Portrait.png',
+		'iPhone Duo - Night Sky - Outer Open.png',
+		'iPhone Duo - Star White - Inner Open Landscape.png',
+		'iPhone Duo - Star White - Inner Open Portrait.png',
+		'iPhone Duo - Star White - Outer Closed Landscape.png',
+		'iPhone Duo - Star White - Outer Closed Portrait.png',
+		'iPhone Duo - Star White - Outer Open.png'
+	];
+	const v = parseVariants(real);
+	assert.deepEqual([...new Set(v.map((x) => x.model))].sort(), [
+		'iPhone Duo Inner Open', 'iPhone Duo Outer Closed', 'iPhone Duo Outer Open'
+	]);
+	assert.deepEqual([...new Set(v.map((x) => x.color))].sort(), ['Night Sky', 'Star White']);
+	// the state-less variant keeps a null orientation, the others are tagged
+	const outerOpen = v.filter((x) => x.model === 'iPhone Duo Outer Open');
+	assert.equal(outerOpen.length, 2);
+	assert.ok(outerOpen.every((x) => x.orientation === null));
+	// one model per physical screen/state, two colours each
+	const g = groupVariants(v);
+	assert.deepEqual([...g.keys()].sort(),
+		['iphone-duo-inner-open', 'iphone-duo-outer-closed', 'iphone-duo-outer-open']);
+	for (const [, m] of g) assert.deepEqual([...m.colors.keys()].sort(), ['night-sky', 'star-white']);
+});
+
+test('parseVariants: a colour containing no state words is never eaten', () => {
+	// "Black + Ocean Band Black" must survive as a colour even though the tail
+	// segment is multi-word — the rule is EVERY word must be a state word.
+	const v = parseVariants(['Ocean Band/AW Ultra 3 - Black + Ocean Band Black.png']);
+	assert.deepEqual([v[0].model, v[0].color], ['AW Ultra 3', 'Black + Ocean Band Black']);
+	// and the shipped iPhone 18 layout is untouched
+	const p = parseVariants(['iPhone 18 Pro Max/iPhone 18 Pro Max - Burgundy - Portrait.png']);
+	assert.deepEqual([p[0].model, p[0].color, p[0].orientation],
+		['iPhone 18 Pro Max', 'Burgundy', 'portrait']);
+});
+
