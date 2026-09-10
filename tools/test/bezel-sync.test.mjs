@@ -456,3 +456,56 @@ test('parseVariants: a colour containing no state words is never eaten', () => {
 		['iPhone 18 Pro Max', 'Burgundy', 'portrait']);
 });
 
+// ── registry ORDER: newest first, families intact ─────────────────────────
+test('mergeDevices puts the newest year first and keeps hand-tuned order within a year', () => {
+	const hand = [
+		{ id: 'iphone-17-pro-max', year: 2025, svgW: 1320, svgH: 2868 },
+		{ id: 'iphone-17-pro',     year: 2025, svgW: 1206, svgH: 2622 },
+		{ id: 'iphone-14',         year: 2022, svgW: 1170, svgH: 2532 }
+	];
+	const gen = [
+		{ id: 'iphone-18-pro',     year: 2026, svgW: 1206, svgH: 2622 },
+		{ id: 'iphone-18-pro-max', year: 2026, svgW: 1320, svgH: 2868 }
+	];
+	const ids = mergeDevices(hand, gen).map((d) => d.id);
+	// 2026 ahead of 2025 ahead of 2022 — generated no longer piles up at the end
+	assert.deepEqual(ids, [
+		'iphone-18-pro-max', 'iphone-18-pro',
+		'iphone-17-pro-max', 'iphone-17-pro',
+		'iphone-14'
+	]);
+	// biggest-first inside the new year, matching the hand-tuned convention
+	assert.ok(ids.indexOf('iphone-18-pro-max') < ids.indexOf('iphone-18-pro'));
+});
+
+test('mergeDevices keeps a folding phone\'s screens together', () => {
+	const gen = [
+		{ id: 'iphone-18-pro-max',      year: 2026, svgW: 1320, svgH: 2868 },
+		{ id: 'iphone-duo-outer-open',  year: 2026, svgW: 1398, svgH: 2034 },
+		{ id: 'iphone-duo-inner-open',  year: 2026, svgW: 2007, svgH: 2853 },
+		{ id: 'iphone-duo-outer-closed',year: 2026, svgW: 1398, svgH: 2034 }
+	];
+	const ids = mergeDevices([], gen).map((d) => d.id);
+	const duo = ids.filter((i) => i.startsWith('iphone-duo-'));
+	const first = ids.indexOf(duo[0]);
+	// the three Duo panels are contiguous, not interleaved with the iPhone 18
+	assert.deepEqual(ids.slice(first, first + 3), duo);
+	assert.equal(duo.length, 3);
+	assert.equal(duo[0], 'iphone-duo-inner-open', 'largest panel leads the family');
+});
+
+test('mergeDevices still lets hand-tuned entries win on id collision', () => {
+	const hand = [{ id: 'iphone-17', year: 2025, svgW: 1206, svgH: 2622, tuned: true }];
+	const gen  = [{ id: 'iphone-17', year: 2025, svgW: 9999, svgH: 9999 },
+	              { id: 'iphone-18', year: 2026, svgW: 1320, svgH: 2868 }];
+	const out = mergeDevices(hand, gen);
+	assert.equal(out.length, 2);
+	assert.equal(out.find((d) => d.id === 'iphone-17').tuned, true);
+	assert.equal(out[0].id, 'iphone-18', 'newer generated entry still sorts to the top');
+});
+
+test('mergeDevices sorts an entry with no year to the end, not the top', () => {
+	const out = mergeDevices([{ id: 'mystery' }, { id: 'new', year: 2026 }], []);
+	assert.deepEqual(out.map((d) => d.id), ['new', 'mystery']);
+});
+
