@@ -25,7 +25,7 @@
  * Every entry in both registries carries a year; anything that somehow lacks
  * one sorts to the end rather than jumping to the top.
  *
- * @template {{ id: string, year?: number }} T
+ * @template {{ id: string, year?: number, svgW?: number, svgH?: number }} T
  * @param {T[]} handTuned entries that win on collision
  * @param {T[]} generated entries from devices.generated.json
  * @returns {T[]} merged, newest year first, stable within a year
@@ -41,22 +41,26 @@ export function mergeDevices(handTuned, generated) {
 	// order both families and their members by screen area. A folding phone is
 	// one device with several panels and should read as one block.
 	// Hand-tuned order is left exactly as written; that curation is deliberate.
+	/** @param {T} d */
 	const area = (d) => (Number(d.svgW) || 0) * (Number(d.svgH) || 0);
 	const STATE = new Set(['inner', 'outer', 'open', 'closed', 'folded', 'unfolded',
 		'front', 'back', 'cover']);
+	/** @param {T} d */
 	const familyOf = (d) => {
 		const parts = String(d.id || '').split('-');
 		while (parts.length > 1 && STATE.has(parts[parts.length - 1])) parts.pop();
 		return parts.join('-');
 	};
+	/** @type {Map<string, T[]>} */
 	const families = new Map();
 	for (const d of generated.filter((x) => !taken.has(x.id))) {
 		const k = familyOf(d);
-		if (!families.has(k)) families.set(k, []);
-		families.get(k).push(d);
+		const bucket = families.get(k) ?? [];
+		bucket.push(d);
+		families.set(k, bucket);
 	}
 	const fresh = [...families.values()]
-		.map((members) => members.slice().sort((a, b) => area(b) - area(a)))
+		.map((members) => members.slice().sort((/** @type {T} */ a, /** @type {T} */ b) => area(b) - area(a)))
 		.sort((a, b) => area(b[0]) - area(a[0]))
 		.flat();
 	const all = [...handTuned, ...fresh];
