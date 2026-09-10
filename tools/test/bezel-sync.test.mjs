@@ -492,6 +492,10 @@ test('mergeDevices keeps a folding phone\'s screens together', () => {
 	assert.deepEqual(ids.slice(first, first + 3), duo);
 	assert.equal(duo.length, 3);
 	assert.equal(duo[0], 'iphone-duo-inner-open', 'largest panel leads the family');
+	// …and the conventional slab outranks the foldable, even though the Duo's
+	// unfolded panel is the physically larger screen
+	assert.equal(ids[0], 'iphone-18-pro-max');
+	assert.ok(ids.indexOf('iphone-18-pro-max') < first, 'iPhone 18 sits above the Duo');
 });
 
 test('mergeDevices still lets hand-tuned entries win on id collision', () => {

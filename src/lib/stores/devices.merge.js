@@ -59,9 +59,19 @@ export function mergeDevices(handTuned, generated) {
 		bucket.push(d);
 		families.set(k, bucket);
 	}
+	// Conventional devices lead, folding ones follow. Ranking families purely by
+	// screen area would put the Duo above the iPhone 18 Pro Max, because its
+	// unfolded inner panel is the bigger display — but the flagship slab is what
+	// people reach for, so it reads wrong. A family counts as folding when its
+	// members carry panel-state suffixes (inner/outer/open/closed), which is
+	// exactly how a multi-panel device is grouped above.
+	/** @param {T[]} members */
+	const isFolding = (members) =>
+		members.length > 1 &&
+		members.some((m) => STATE.has(String(m.id || '').split('-').pop() ?? ''));
 	const fresh = [...families.values()]
 		.map((members) => members.slice().sort((/** @type {T} */ a, /** @type {T} */ b) => area(b) - area(a)))
-		.sort((a, b) => area(b[0]) - area(a[0]))
+		.sort((a, b) => (isFolding(a) ? 1 : 0) - (isFolding(b) ? 1 : 0) || area(b[0]) - area(a[0]))
 		.flat();
 	const all = [...handTuned, ...fresh];
 	return all
