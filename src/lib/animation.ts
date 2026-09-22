@@ -153,6 +153,21 @@ export const animationPresets: AnimationPreset[] = [
 			}))
 	},
 	{
+		id: 'rise',
+		name: 'Rise',
+		description: 'Rise up from below the frame',
+		duration: 1500,
+		createTracks: (ids) =>
+			ids.map((id) => ({
+				targetId: id,
+				property: 'y',
+				keyframes: [
+					{ time: 0, props: { y: 130 } },
+					{ time: 1500, props: { y: 50 } }
+				]
+			}))
+	},
+	{
 		id: 'slide-in',
 		name: 'Slide In',
 		description: 'Slide from right to center',
@@ -180,6 +195,65 @@ export function scaleTracksToduration(tracks: AnimationTrack[], presetDuration: 
 			time: kf.time * ratio
 		}))
 	}));
+}
+
+/** One step of a chained animation: `preset` plays from `start` to `end` ms. */
+export interface SequenceStep {
+	preset: string;
+	start: number;
+	end: number;
+}
+
+/**
+ * Build tracks for a chain of presets (e.g. Rise, then Float). A step longer
+ * than its preset repeats whole cycles rather than stretching one slow cycle,
+ * and when a step continues a property an earlier step animated, its values
+ * are shifted to start where the earlier step ended, so the chain never jumps.
+ */
+export function buildSequenceTracks(steps: SequenceStep[], objectIds: string[]): AnimationTrack[] {
+	const merged = new Map<string, AnimationTrack>();
+	for (const step of [...steps].sort((a, b) => a.start - b.start)) {
+		const preset = animationPresets.find((p) => p.id === step.preset);
+		if (!preset) throw new Error(`Unknown animation preset: ${step.preset}`);
+		const length = step.end - step.start;
+		if (length <= 0) throw new Error(`Empty animation step: ${step.preset}@${step.start}:${step.end}`);
+		const cycles = Math.max(1, Math.round(length / preset.duration));
+		const cycleLength = length / cycles;
+		for (let c = 0; c < cycles; c++) {
+			const offset = step.start + c * cycleLength;
+			const tracks = scaleTracksToduration(preset.createTracks(objectIds), preset.duration, cycleLength);
+			for (const track of tracks) {
+				const key = `${track.targetId}\u0000${track.property}`;
+				const prev = merged.get(key);
+				const prevLast = prev?.keyframes[prev.keyframes.length - 1]?.props[track.property];
+				const first = track.keyframes[0]?.props[track.property];
+				const shift = prevLast !== undefined && first !== undefined ? prevLast - first : 0;
+				const keyframes = track.keyframes.map((kf) => ({
+					time: kf.time + offset,
+					props: { [track.property]: (kf.props[track.property] ?? 0) + shift }
+				}));
+				if (prev) prev.keyframes.push(...keyframes);
+				else merged.set(key, { ...track, keyframes });
+			}
+		}
+	}
+	for (const track of merged.values()) track.keyframes.sort((a, b) => a.time - b.time);
+	return [...merged.values()];
+}
+
+/** The value each preset treats as "at rest", for applying tracks relative to an object's own pose. */
+export const PROPERTY_REST: Record<string, number> = { x: 50, y: 50, rotation: 0, tiltX: 0, tiltY: 0, scale: 1 };
+
+/**
+ * Resolve a track value against an object's resting value. Absolute mode (the
+ * editor's behaviour) returns the preset value as-is; relative mode treats it
+ * as an offset from the preset's rest, so Float bobs around wherever the
+ * device already sits instead of snapping it to the canvas centre.
+ */
+export function resolveTrackValue(property: string, value: number, base: number, relative: boolean): number {
+	if (!relative) return value;
+	const rest = PROPERTY_REST[property] ?? 0;
+	return property === 'scale' ? base * (value / rest) : base + (value - rest);
 }
 
 export interface AnimationConfig {

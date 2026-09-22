@@ -115,7 +115,7 @@ Built specifically for shipping apps:
 
 Create animated mockups and export as video:
 
-- **6 animation presets** - Full Spin, Rock, Tilt Showcase, Float, Zoom Pulse, Slide In
+- **7 animation presets** - Full Spin, Rock, Tilt Showcase, Float, Zoom Pulse, Slide In, Rise
 - Adjustable duration and FPS
 - Loop support
 - Export as **MP4** (H.264), **MOV**, or **WebM** (VP9)
@@ -226,6 +226,29 @@ when no `.monkr` exists yet. Run `monkr render --help` for the full list. The
 CLI auto-builds the static site on first use and rebuilds automatically when
 `src/` has changed since the last build. Implemented in `bin/monkr.mjs` +
 `cli/render.mjs`, backed by the headless route at `src/routes/headless/`.
+
+### CLI animation (headless video)
+
+`monkr animate` plays Monkr's animation presets over a project and writes a
+video, using the same renderer frame by frame and the system `ffmpeg`
+(`brew install ffmpeg`) for H.264 encoding. Presets can be **chained**, which
+is what short social clips (YouTube Shorts, Reels) need: an entrance, then a
+loop.
+
+```bash
+# rise in from below, then float for the rest of a 7-second 9:16 clip
+monkr animate short.monkr --out short.mp4 --duration 7000 --relative \
+  --sequence "rise@0:1400,float@1400:7000"
+```
+
+`--sequence` takes `preset@start:end` steps in milliseconds (a bare preset name
+runs the whole clip). A step longer than its preset repeats whole cycles, and a
+step that continues a property picks up where the previous one ended, so chains
+never jump. `--relative` applies presets as offsets from each device's own
+position and pose, instead of the editor's absolute values, so a composed layout
+keeps its composition. Other flags: `--fps`, `--silent-audio` (adds a silent AAC
+track), `--build`. Implemented in `cli/animate.mjs`; the chaining and relative
+math live in `src/lib/animation.ts` (`buildSequenceTracks`, `resolveTrackValue`).
 
 ---
 
