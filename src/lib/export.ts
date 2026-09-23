@@ -1,4 +1,4 @@
-import { toPng, toJpeg, toBlob } from 'html-to-image';
+import { toPng, toJpeg, toBlob, toCanvas } from 'html-to-image';
 import { preInlineImages, stripTransformForCapture } from './animation';
 import { exportFilter } from './capture-filter';
 import type { ExportFormat, ExportScale } from './types';
@@ -39,6 +39,14 @@ async function capturePng(
 	return toPng(element, options);
 }
 
+async function captureCanvas(
+	element: HTMLElement,
+	options: Parameters<typeof toCanvas>[1]
+): Promise<HTMLCanvasElement> {
+	if (isSafari) await toCanvas(element, options);
+	return toCanvas(element, options);
+}
+
 async function captureBlob(
 	element: HTMLElement,
 	options: Parameters<typeof toBlob>[1]
@@ -56,7 +64,8 @@ async function captureBlob(
 export async function captureToDataUrl(
 	element: HTMLElement,
 	format: ExportFormat,
-	scale: ExportScale
+	scale: ExportScale,
+	trimTransparent = false
 ): Promise<string> {
 	const restoreImages = await preInlineImages(element);
 	const restoreTransform = stripTransformForCapture(element);
@@ -75,6 +84,9 @@ export async function captureToDataUrl(
 		if (format === 'jpg') {
 			return await captureJpeg(element, { ...options, backgroundColor: '#000000' });
 		}
+		if (trimTransparent) {
+			return trimTransparentEdges(await captureCanvas(element, options)).toDataURL('image/png');
+		}
 		return await capturePng(element, options);
 	} finally {
 		restoreTransform();
@@ -86,13 +98,57 @@ export async function exportCanvas(
 	element: HTMLElement,
 	format: ExportFormat,
 	scale: ExportScale,
-	filePrefix?: string
+	filePrefix?: string,
+	trimTransparent = false
 ): Promise<void> {
-	const dataUrl = await captureToDataUrl(element, format, scale);
+	const dataUrl = await captureToDataUrl(element, format, scale, trimTransparent);
 	const link = document.createElement('a');
 	link.download = `monkr-${filePrefix ?? 'mockup'}-${Date.now()}.${format}`;
 	link.href = dataUrl;
 	link.click();
+}
+
+/**
+ * Crop a capture to the bounding box of every pixel with nonzero alpha, so
+ * antialiased edges and soft shadows are kept whole. Works on the canvas
+ * html-to-image already drew, before any PNG encode — no encode/decode round
+ * trip. Scans inward from each edge and stops at the first visible pixel,
+ * so the cost is the empty margin, not the whole image. A capture with no
+ * visible pixels comes back untouched rather than failing the export.
+ */
+export function trimTransparentEdges(canvas: HTMLCanvasElement): HTMLCanvasElement {
+	const { width: w, height: h } = canvas;
+	const ctx = canvas.getContext('2d', { willReadFrequently: true });
+	if (!ctx || w === 0 || h === 0) return canvas;
+	const data = ctx.getImageData(0, 0, w, h).data;
+	const visible = (x: number, y: number) => data[(y * w + x) * 4 + 3] !== 0;
+	const rowVisible = (y: number) => {
+		for (let x = 0; x < w; x++) if (visible(x, y)) return true;
+		return false;
+	};
+	const colVisible = (x: number, top: number, bottom: number) => {
+		for (let y = top; y <= bottom; y++) if (visible(x, y)) return true;
+		return false;
+	};
+
+	let top = 0;
+	while (top < h && !rowVisible(top)) top++;
+	if (top === h) return canvas; // nothing visible — export the full frame
+	let bottom = h - 1;
+	while (!rowVisible(bottom)) bottom--;
+	let left = 0;
+	while (!colVisible(left, top, bottom)) left++;
+	let right = w - 1;
+	while (!colVisible(right, top, bottom)) right--;
+
+	if (left === 0 && top === 0 && right === w - 1 && bottom === h - 1) return canvas;
+	const cropped = document.createElement('canvas');
+	cropped.width = right - left + 1;
+	cropped.height = bottom - top + 1;
+	cropped
+		.getContext('2d')!
+		.drawImage(canvas, left, top, cropped.width, cropped.height, 0, 0, cropped.width, cropped.height);
+	return cropped;
 }
 
 /** Export a canvas element sliced into sections (for App Store mode) */
@@ -165,18 +221,22 @@ export async function exportCanvasSections(
 
 export async function copyToClipboard(
 	element: HTMLElement,
-	scale: ExportScale
+	scale: ExportScale,
+	trimTransparent = false
 ): Promise<void> {
 	const restoreImages = await preInlineImages(element);
 	const restoreTransform = stripTransformForCapture(element);
 	await waitForRepaint();
 
 	try {
-		const blob = await captureBlob(element, {
-			pixelRatio: scale,
-			cacheBust: false,
-			filter: exportFilter
-		});
+		const options = { pixelRatio: scale, cacheBust: false, filter: exportFilter };
+		let blob: Blob | null;
+		if (trimTransparent) {
+			const trimmed = trimTransparentEdges(await captureCanvas(element, options));
+			blob = await new Promise((resolve) => trimmed.toBlob(resolve, 'image/png'));
+		} else {
+			blob = await captureBlob(element, options);
+		}
 		if (!blob) throw new Error('Failed to create image blob');
 
 		await navigator.clipboard.write([

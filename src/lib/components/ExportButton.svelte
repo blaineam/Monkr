@@ -34,7 +34,13 @@
 					store.exportConfig.scale
 				);
 			} else {
-				await exportCanvas(canvasRef, store.exportConfig.format, store.exportConfig.scale);
+				await exportCanvas(
+					canvasRef,
+					store.exportConfig.format,
+					store.exportConfig.scale,
+					undefined,
+					store.exportConfig.trimTransparent
+				);
 			}
 		} catch (err) {
 			console.error('Export failed:', err);
@@ -46,7 +52,7 @@
 	async function handleCopy() {
 		if (!canvasRef || copied) return;
 		try {
-			await copyToClipboard(canvasRef, store.exportConfig.scale);
+			await copyToClipboard(canvasRef, store.exportConfig.scale, store.exportConfig.trimTransparent);
 			copied = true;
 			setTimeout(() => (copied = false), 2000);
 		} catch (err) {
@@ -115,7 +121,13 @@
 						`variation-${i + 1}`
 					);
 				} else {
-					await exportCanvas(canvasRef, store.exportConfig.format, store.exportConfig.scale, `variation-${i + 1}`);
+					await exportCanvas(
+						canvasRef,
+						store.exportConfig.format,
+						store.exportConfig.scale,
+						`variation-${i + 1}`,
+						store.exportConfig.trimTransparent
+					);
 				}
 			}
 

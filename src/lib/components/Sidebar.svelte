@@ -1242,6 +1242,22 @@
 					</div>
 					{#if store.background.type === 'transparent'}
 						<span class="block text-[10px] text-zinc-500">PNG only — JPEG has no transparency</span>
+						<label
+							class="flex items-center gap-2 pt-1 text-[10px] text-zinc-400
+								{store.appStoreEnabled ? 'cursor-not-allowed opacity-40' : ''}"
+							title={store.appStoreEnabled
+								? 'App Store slides keep their exact dimensions'
+								: 'Crop empty transparent space around the mockup'}
+						>
+							<input
+								type="checkbox"
+								class="accent-pink-600"
+								checked={store.trimTransparentPreference}
+								disabled={store.appStoreEnabled}
+								onchange={(e) => store.setExportTrim(e.currentTarget.checked)}
+							/>
+							Trim transparent edges
+						</label>
 					{/if}
 				</div>
 				<ExportButton {canvasRef} />
