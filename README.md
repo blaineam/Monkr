@@ -78,6 +78,7 @@ license notes.
 - **100+ curated images** - Abstract, cosmic, earth, holographic, mystic, glass, radiant, vintage, and classic macOS wallpapers (Big Sur through Tahoe)
 - **Solid colors** with full color picker
 - **Transparent** backgrounds for compositing
+- **Trim transparent edges** when exporting a transparent PNG to remove empty canvas space around the visible mockup
 - **Custom uploads** - drag & drop any image
 - **Unsplash integration** - search millions of free photos
 

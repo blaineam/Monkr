@@ -86,13 +86,56 @@ export async function exportCanvas(
 	element: HTMLElement,
 	format: ExportFormat,
 	scale: ExportScale,
-	filePrefix?: string
+	filePrefix?: string,
+	trimTransparentEdges = false
 ): Promise<void> {
-	const dataUrl = await captureToDataUrl(element, format, scale);
+	let dataUrl = await captureToDataUrl(element, format, scale);
+	if (trimTransparentEdges && format === 'png') {
+		dataUrl = await trimTransparentPng(dataUrl);
+	}
 	const link = document.createElement('a');
 	link.download = `monkr-${filePrefix ?? 'mockup'}-${Date.now()}.${format}`;
 	link.href = dataUrl;
 	link.click();
+}
+
+/** Crop to the outermost pixel with nonzero alpha, retaining antialiased edges. */
+export async function trimTransparentPng(dataUrl: string): Promise<string> {
+	const img = new Image();
+	await new Promise<void>((resolve, reject) => {
+		img.onload = () => resolve();
+		img.onerror = () => reject(new Error('Failed to load PNG for trimming'));
+		img.src = dataUrl;
+	});
+	const canvas = document.createElement('canvas');
+	canvas.width = img.naturalWidth;
+	canvas.height = img.naturalHeight;
+	const ctx = canvas.getContext('2d', { willReadFrequently: true });
+	if (!ctx) throw new Error('Failed to create canvas for trimming');
+	ctx.drawImage(img, 0, 0);
+	const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+	let left = canvas.width;
+	let top = canvas.height;
+	let right = -1;
+	let bottom = -1;
+	for (let y = 0; y < canvas.height; y++) {
+		for (let x = 0; x < canvas.width; x++) {
+			if (data[(y * canvas.width + x) * 4 + 3] === 0) continue;
+			left = Math.min(left, x);
+			top = Math.min(top, y);
+			right = Math.max(right, x);
+			bottom = Math.max(bottom, y);
+		}
+	}
+	if (right < left) throw new Error('Nothing visible to export');
+	if (left === 0 && top === 0 && right === canvas.width - 1 && bottom === canvas.height - 1) {
+		return dataUrl;
+	}
+	const cropped = document.createElement('canvas');
+	cropped.width = right - left + 1;
+	cropped.height = bottom - top + 1;
+	cropped.getContext('2d')!.drawImage(canvas, left, top, cropped.width, cropped.height, 0, 0, cropped.width, cropped.height);
+	return cropped.toDataURL('image/png');
 }
 
 /** Export a canvas element sliced into sections (for App Store mode) */
