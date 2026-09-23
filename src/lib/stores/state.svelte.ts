@@ -102,7 +102,7 @@ function createDefaultState(): MonkrState {
 	const firstObj = createDefaultObject();
 	return {
 		background: {
-			type: 'gradient',
+			type: 'transparent',
 			solidColor: '#1e1b4b',
 			gradientCss:
 				'radial-gradient(at 20% 80%, #7c3aed 0%, transparent 60%), radial-gradient(at 80% 20%, #ec4899 0%, transparent 60%), radial-gradient(at 50% 50%, #2563eb 0%, transparent 80%), #1e1b4b',

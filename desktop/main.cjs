@@ -61,6 +61,7 @@ async function serveApp(request) {
 
 async function createWindow() {
 	const window = new BrowserWindow({
+		icon: path.resolve(__dirname, '..', 'static', 'icon-512.png'),
 		width: 1440,
 		height: 900,
 		minWidth: 1000,
@@ -79,7 +80,7 @@ async function createWindow() {
 }
 
 if (process.env.PORTABLE_EXECUTABLE_DIR) {
-	app.setPath('userData', path.join(process.env.PORTABLE_EXECUTABLE_DIR, 'MonkrPortableData'));
+	app.setPath('userData', path.join(process.env.PORTABLE_EXECUTABLE_DIR, 'MonkrLitePortableData'));
 }
 
 app.whenReady().then(async () => {

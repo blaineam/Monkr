@@ -1,3 +1,10 @@
+> **Monkr Lite branch:** A focused Windows portable edition with phone and tablet
+> frames, screenshot borders, and transparent PNG export that trims all outer
+> transparent pixels. Download and clipboard use the same lossless capture.
+> Choose 1x–4x resolution. Uploaded images are preserved between sessions.
+> Build with `npm run build:portable`; settings live beside the executable in
+> `MonkrLitePortableData`. The full edition is on `codex/windows-portable`.
+
 <p align="center">
   <a href="https://monkr.wemiller.com">
     <img src="static/icon-512.png" width="120" alt="Monkr Logo" />

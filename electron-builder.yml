@@ -1,17 +1,19 @@
-appId: com.monkr.portable
-productName: Monkr
+appId: com.monkr.lite.portable
+productName: Monkr Lite
 asar: true
 electronDist: node_modules/electron/dist
 files:
   - build/**/*
   - desktop/**/*
+  - static/icon-512.png
   - package.json
 directories:
   output: release
 win:
+  icon: static/icon-512.png
   target:
     - target: portable
       arch: [x64]
-  signAndEditExecutable: false
+  signAndEditExecutable: true
 portable:
-  artifactName: Monkr-Portable-${version}-${arch}.${ext}
+  artifactName: Monkr-Lite-Portable-${version}-${arch}.${ext}
