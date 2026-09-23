@@ -24,6 +24,8 @@ Render options:
   --save                write the updated .monkr back to disk (with new shots)
   --format <png|jpg>    override the project's export format
   --scale <1|2|3>       override the project's export scale
+  --trim / --no-trim    crop a transparent PNG to its visible pixels
+                        (default: the project's "Trim transparent edges")
   --build               force-rebuild the Monkr static site first
   --device <id>         device id for a synthesized default (no .monkr yet)
   --color <id>          device color id for a synthesized default
@@ -87,6 +89,8 @@ function parseRender(argv) {
 			case '--save': a.save = true; break;
 			case '--format': a.format = argv[++i]; break;
 			case '--scale': a.scale = Number(argv[++i]); break;
+			case '--trim': a.trim = true; break;
+			case '--no-trim': a.trim = false; break;
 			case '--build': a.build = true; break;
 			case '--device': a.device = argv[++i]; break;
 			case '--color': a.color = argv[++i]; break;

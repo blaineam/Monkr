@@ -57,6 +57,8 @@
 		/** Override the project's export format/scale (defaults to the project's). */
 		format?: ExportFormat;
 		scale?: ExportScale;
+		/** Override the project's trim-transparent-edges setting. PNG only. */
+		trim?: boolean;
 	}
 
 	/**
@@ -64,7 +66,7 @@
 	 * device and capture the canvas. Returns one data URL per screenshot, in
 	 * order. If `screenshots` is empty, renders the project's own screenshot.
 	 */
-	async function render({ projectJson, screenshots, format, scale }: RenderArgs): Promise<string[]> {
+	async function render({ projectJson, screenshots, format, scale, trim }: RenderArgs): Promise<string[]> {
 		const json = typeof projectJson === 'string' ? projectJson : JSON.stringify(projectJson);
 		const file = new File([json], 'project.monkr', { type: 'application/json' });
 		await store.loadProject(file);
@@ -76,6 +78,7 @@
 		const obj = store.sceneObjects[0];
 		const fmt: ExportFormat = format ?? store.exportConfig.format;
 		const scl: ExportScale = scale ?? store.exportConfig.scale;
+		const trm = (trim ?? store.exportConfig.trimTransparent ?? false) && fmt === 'png';
 		// Fall back to the project's own screenshots (primary + extras) when the
 		// caller passes none — lets the driver hand over a single project payload
 		// with the screenshots already embedded rather than shipping them twice.
@@ -90,7 +93,7 @@
 			store.updateObject(obj.id, { screenshotUrl: shot, screenshotFile: null });
 			await settle();
 			await awaitImages();
-			out.push(await captureToDataUrl(canvasRef, fmt, scl));
+			out.push(await captureToDataUrl(canvasRef, fmt, scl, trm));
 		}
 		return out;
 	}

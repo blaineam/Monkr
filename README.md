@@ -78,7 +78,7 @@ license notes.
 - **100+ curated images** - Abstract, cosmic, earth, holographic, mystic, glass, radiant, vintage, and classic macOS wallpapers (Big Sur through Tahoe)
 - **Solid colors** with full color picker
 - **Transparent** backgrounds for compositing
-- **Trim transparent edges** when exporting a transparent PNG to remove empty canvas space around the visible mockup
+- **Trim transparent edges** - crop a transparent PNG export to the visible mockup (shadows and antialiased edges kept). Saved with the project; applies to Download, Copy, and Export All Variations, never to App Store slides
 - **Custom uploads** - drag & drop any image
 - **Unsplash integration** - search millions of free photos
 
@@ -221,7 +221,8 @@ monkr render App-iphone.monkr --out out/ --save --screenshots raw/iphone/
 ```
 
 One framed image is written per screenshot. Useful flags: `--save` (write the
-updated `.monkr`), `--format png|jpg`, `--scale 1|2|3`, `--build` (force a
+updated `.monkr`), `--format png|jpg`, `--scale 1|2|3`, `--trim` / `--no-trim`
+(crop a transparent PNG to its visible pixels), `--build` (force a
 rebuild first), and `--device/--color/--canvas` to synthesize a default frame
 when no `.monkr` exists yet. Run `monkr render --help` for the full list. The
 CLI auto-builds the static site on first use and rebuilds automatically when

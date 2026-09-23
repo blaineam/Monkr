@@ -169,9 +169,9 @@ export async function render(opts) {
 		await page.waitForFunction('!!window.__monkr', null, { timeout: 30000 });
 		log('• Rendering frames…');
 		results = await page.evaluate(
-			async ({ project, format, scale }) =>
-				window.__monkr.render({ projectJson: project, screenshots: [], format, scale }),
-			{ project, format: opts.format, scale: opts.scale }
+			async ({ project, format, scale, trim }) =>
+				window.__monkr.render({ projectJson: project, screenshots: [], format, scale, trim }),
+			{ project, format: opts.format, scale: opts.scale, trim: opts.trim }
 		);
 	} finally {
 		await browser.close();

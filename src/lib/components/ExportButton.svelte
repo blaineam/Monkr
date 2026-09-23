@@ -14,12 +14,6 @@
 	let copied = $state(false);
 	let batchExporting = $state(false);
 	let batchProgress = $state('');
-	let trimTransparentEdges = $state(false);
-	let canTrim = $derived(
-		store.background.type === 'transparent' &&
-		store.exportConfig.format === 'png' &&
-		!store.appStoreEnabled
-	);
 
 	/** Check if any device has extra screenshots for batch export */
 	let hasBatchScreenshots = $derived(
@@ -40,7 +34,13 @@
 					store.exportConfig.scale
 				);
 			} else {
-				await exportCanvas(canvasRef, store.exportConfig.format, store.exportConfig.scale, undefined, canTrim && trimTransparentEdges);
+				await exportCanvas(
+					canvasRef,
+					store.exportConfig.format,
+					store.exportConfig.scale,
+					undefined,
+					store.exportConfig.trimTransparent
+				);
 			}
 		} catch (err) {
 			console.error('Export failed:', err);
@@ -52,7 +52,7 @@
 	async function handleCopy() {
 		if (!canvasRef || copied) return;
 		try {
-			await copyToClipboard(canvasRef, store.exportConfig.scale);
+			await copyToClipboard(canvasRef, store.exportConfig.scale, store.exportConfig.trimTransparent);
 			copied = true;
 			setTimeout(() => (copied = false), 2000);
 		} catch (err) {
@@ -121,7 +121,13 @@
 						`variation-${i + 1}`
 					);
 				} else {
-					await exportCanvas(canvasRef, store.exportConfig.format, store.exportConfig.scale, `variation-${i + 1}`, canTrim && trimTransparentEdges);
+					await exportCanvas(
+						canvasRef,
+						store.exportConfig.format,
+						store.exportConfig.scale,
+						`variation-${i + 1}`,
+						store.exportConfig.trimTransparent
+					);
 				}
 			}
 
@@ -140,13 +146,6 @@
 </script>
 
 <div class="space-y-2">
-	<label class="flex items-center gap-2 text-[10px] text-zinc-400" title="Crop transparent pixels outside the visible mockup">
-		<input type="checkbox" bind:checked={trimTransparentEdges} disabled={!canTrim} class="accent-pink-600 disabled:opacity-40" />
-		Trim transparent edges
-	</label>
-	{#if !canTrim}
-		<p class="text-[10px] text-zinc-500">Available for transparent PNG outside App Store mode</p>
-	{/if}
 	<div class="flex gap-2">
 		<button
 			onclick={handleExport}

@@ -382,9 +382,16 @@ class MonkrStore {
 		// and the headless/CLI renderer — including projects loaded from a .monkr
 		// that already carries a stale format: 'jpg'. The stored value is left
 		// alone, so the user's real choice comes back when the background does.
-		return c.format === 'jpg' && this._state.background.type === 'transparent'
-			? { ...c, format: 'png' }
-			: c;
+		const transparent = this._state.background.type === 'transparent';
+		const format = c.format === 'jpg' && transparent ? 'png' : c.format;
+		// Trimming only means something for a transparent PNG, and App Store
+		// slices must keep their exact store dimensions. Same rule as above: the
+		// stored choice survives, it just doesn't apply while it can't.
+		const trimTransparent =
+			!!c.trimTransparent && transparent && format === 'png' && !this._state.appStore.enabled;
+		return format === c.format && trimTransparent === !!c.trimTransparent
+			? c
+			: { ...c, format, trimTransparent };
 	}
 
 	get canvasSize(): CanvasSize {
@@ -770,6 +777,16 @@ class MonkrStore {
 	setExportFormat(format: ExportFormat) {
 		this._state.exportConfig = { ...this._state.exportConfig, format };
 		this._scheduleSave();
+	}
+
+	setExportTrim(trimTransparent: boolean) {
+		this._state.exportConfig = { ...this._state.exportConfig, trimTransparent };
+		this._scheduleSave();
+	}
+
+	/** The user's stored trim choice, even while the effective config ignores it. */
+	get trimTransparentPreference(): boolean {
+		return !!this._state.exportConfig.trimTransparent;
 	}
 
 	setCanvasSize(size: Partial<CanvasSize>) {

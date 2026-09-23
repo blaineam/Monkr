@@ -64,6 +64,12 @@ export type ExportScale = 1 | 2 | 3;
 export interface ExportConfig {
 	scale: ExportScale;
 	format: ExportFormat;
+	/**
+	 * Crop a transparent PNG to its visible pixels. Optional so projects saved
+	 * before it existed load unchanged; only honoured while it can apply (see
+	 * the store's `exportConfig` getter).
+	 */
+	trimTransparent?: boolean;
 }
 
 export interface CanvasPreset {

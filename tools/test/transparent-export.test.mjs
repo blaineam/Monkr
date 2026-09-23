@@ -46,7 +46,7 @@ async function chromiumAvailable() {
  * persisted into the .monkr — the point of the second test is that a stale
  * 'jpg' must not defeat transparency.
  */
-function transparentProject(format) {
+function transparentProject(format, trimTransparent = false) {
 	return {
 		version: 3,
 		background: {
@@ -58,7 +58,7 @@ function transparentProject(format) {
 		},
 		canvasSize: { width: W, height: H, presetName: 'Custom' },
 		padding: 80,
-		exportConfig: { scale: 1, format },
+		exportConfig: { scale: 1, format, trimTransparent },
 		textOverlay: {},
 		textBlocks: [],
 		sceneObjects: [
@@ -169,4 +169,26 @@ test('transparent + stale format:jpg still exports transparent PNG', { timeout: 
 	const { path, img } = await renderOne(transparentProject('jpg'), 'jpg');
 	assert.ok(path.endsWith('.png'), `expected a .png, got ${path}`);
 	assertTransparentCorners(img, path);
+});
+
+// "Trim transparent edges" is saved in the project, so the CLI honours it with
+// no flag. The output must shrink to the device — and stop exactly at it: every
+// edge row/column of the result has to touch a visible pixel, otherwise we
+// either left margin behind or cut into the frame.
+test('trimTransparent crops a transparent PNG to its visible pixels', { timeout: TIMEOUT }, async (t) => {
+	if (!(await chromiumAvailable())) {
+		t.skip('playwright chromium not installed — run: npx playwright install chromium');
+		return;
+	}
+	const { path, img } = await renderOne(transparentProject('png', true), 'trim');
+	const { width: w, height: h } = img;
+	assert.ok(w < W && h <= H, `${path}: expected a crop inside ${W}x${H}, got ${w}x${h}`);
+	assert.ok(w > W / 4 && h > H / 4, `${path}: ${w}x${h} is too small to be the whole device`);
+
+	const rowHit = (y) => { for (let x = 0; x < w; x++) if (img.alphaAt(x, y) !== 0) return true; return false; };
+	const colHit = (x) => { for (let y = 0; y < h; y++) if (img.alphaAt(x, y) !== 0) return true; return false; };
+	assert.ok(rowHit(0), `${path}: top row is fully transparent — not trimmed tight`);
+	assert.ok(rowHit(h - 1), `${path}: bottom row is fully transparent — not trimmed tight`);
+	assert.ok(colHit(0), `${path}: left column is fully transparent — not trimmed tight`);
+	assert.ok(colHit(w - 1), `${path}: right column is fully transparent — not trimmed tight`);
 });
