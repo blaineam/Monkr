@@ -29,6 +29,27 @@ export function parseSequence(spec, duration) {
 	});
 }
 
+/**
+ * Tom (https://github.com/blaineam/Tom) is an optional companion: a seeded
+ * music machine. Found via $TOM_BIN, or `tom` on PATH.
+ */
+function findTom() {
+	if (process.env.TOM_BIN) return process.env.TOM_BIN;
+	try { execFileSync('tom', ['--version'], { stdio: 'ignore' }); return 'tom'; } catch { return null; }
+}
+
+/** Render a Tom jingle whose final hit lands at hitMs, lasting the whole clip. */
+function scoreWithTom(spec, durationMs, hitMs, outWav) {
+	const tom = findTom();
+	if (!tom) throw new Error('--music needs Tom (https://github.com/blaineam/Tom): install it so `tom` is on PATH, or set TOM_BIN to tom.mjs');
+	const [style, seed] = String(spec).split(':');
+	const args = ['jingle', '--style', style, '--length', String(durationMs / 1000), '--hit', String(hitMs / 1000), '--out', outWav];
+	if (seed) args.push('--seed', seed);
+	const cmd = tom.endsWith('.mjs') ? process.execPath : tom;
+	execFileSync(cmd, tom.endsWith('.mjs') ? [tom, ...args] : args, { stdio: ['ignore', 'ignore', 'inherit'] });
+	log(`• Scored with Tom: ${style}${seed ? ` ${seed}` : ''}, final hit at ${(hitMs / 1000).toFixed(2)}s`);
+}
+
 function ffmpegAvailable() {
 	try { execFileSync('ffmpeg', ['-version'], { stdio: 'ignore' }); return true; } catch { return false; }
 }
@@ -43,6 +64,8 @@ function ffmpegAvailable() {
  * @param {number} [opts.fps]      default: project animation.fps, else 30
  * @param {boolean} [opts.relative]
  * @param {boolean} [opts.silentAudio] add a silent AAC track (some platforms want one)
+ * @param {string} [opts.music]    score the clip with Tom: "style" or "style:#tag" (needs `tom`)
+ * @param {number} [opts.musicHit] ms at which Tom's final hit lands (default: 74% of the clip)
  * @param {boolean} [opts.build]   force-rebuild the static site
  * @returns {Promise<string>} the written video path
  */
@@ -91,7 +114,11 @@ export async function animate(opts) {
 	const out = resolve(opts.out);
 	await mkdir(dirname(out), { recursive: true });
 	const args = ['-y', '-loglevel', 'error', '-framerate', String(fps), '-i', join(work, 'f%05d.jpg')];
-	if (opts.silentAudio) args.push('-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000', '-shortest', '-c:a', 'aac');
+	if (opts.music) {
+		const bed = join(work, 'music.wav');
+		scoreWithTom(opts.music, duration, opts.musicHit ?? Math.round(duration * 0.74), bed);
+		args.push('-i', bed, '-map', '0:v', '-map', '1:a', '-c:a', 'aac', '-b:a', '192k', '-shortest');
+	} else if (opts.silentAudio) args.push('-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000', '-shortest', '-c:a', 'aac');
 	args.push('-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2', '-c:v', 'libx264', '-pix_fmt', 'yuv420p',
 		'-preset', 'slow', '-crf', '18', '-movflags', '+faststart', out);
 	log('• Encoding');

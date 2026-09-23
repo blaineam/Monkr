@@ -247,7 +247,13 @@ step that continues a property picks up where the previous one ended, so chains
 never jump. `--relative` applies presets as offsets from each device's own
 position and pose, instead of the editor's absolute values, so a composed layout
 keeps its composition. Other flags: `--fps`, `--silent-audio` (adds a silent AAC
-track), `--build`. Implemented in `cli/animate.mjs`; the chaining and relative
+track), `--build`.
+
+Add music with [Tom](https://github.com/blaineam/Tom), a seeded music machine:
+`--music synthwave` (or `--music "chip:#road-trip"` for a specific,
+shareable tune) scores the clip with a Tom jingle whose final hit lands at
+`--music-hit` ms (default: 74% of the clip). Tom is optional. Monkr finds it via
+`TOM_BIN` or `tom` on your PATH, and only needs it when you ask for music. Implemented in `cli/animate.mjs`; the chaining and relative
 math live in `src/lib/animation.ts` (`buildSequenceTracks`, `resolveTrackValue`).
 
 ---

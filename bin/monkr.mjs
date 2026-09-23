@@ -42,6 +42,10 @@ Animate options:
   --relative            apply presets as offsets from each device's own pose
                         instead of the editor's absolute values
   --silent-audio        add a silent AAC track (some platforms expect audio)
+  --music <style[:#tag]>  score the clip with Tom (github.com/blaineam/Tom), e.g.
+                        "synthwave" or "chip:#road-trip"; needs \`tom\` on PATH
+                        or TOM_BIN pointing at tom.mjs
+  --music-hit <ms>      when Tom's final hit lands (default: 74% of the clip)
   --build               force-rebuild the Monkr static site first
 
 Examples:
@@ -63,6 +67,8 @@ function parseAnimate(argv) {
 			case '--fps': a.fps = Number(argv[++i]); break;
 			case '--relative': a.relative = true; break;
 			case '--silent-audio': a.silentAudio = true; break;
+			case '--music': a.music = argv[++i]; break;
+			case '--music-hit': a.musicHit = Number(argv[++i]); break;
 			case '--build': a.build = true; break;
 			default:
 				if (t.startsWith('--')) { console.error(`Unknown option: ${t}`); process.exit(2); }
