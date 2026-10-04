@@ -24,3 +24,4 @@ vite.config.ts.timestamp-*
 
 # Apple bezel staging area (see docs/APPLE-BEZELS.md)
 static/devices/_incoming/
+/build-*

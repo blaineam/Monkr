@@ -1,5 +1,7 @@
 // Curated background image categories from shots.so-style asset library
 
+import { media } from './site';
+
 export interface BackgroundImage {
 	preview: string; // thumbnail URL
 	original: string; // full-res URL
@@ -86,8 +88,8 @@ export const backgroundImageCategories: BackgroundImageCategory[] = Object.entri
 		id,
 		name,
 		images: files.map((f) => ({
-			preview: `/backgrounds/preview/${id}/${f}`,
-			original: `/backgrounds/original/${id}/${f}`
+			preview: media(`/backgrounds/preview/${id}/${f}`),
+			original: media(`/backgrounds/original/${id}/${f}`)
 		}))
 	})
 );

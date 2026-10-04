@@ -1,0 +1,36 @@
+# Tells the portfolio repo (blaineam/blaineam.github.io) to rebuild and re-mirror the
+# Monkr app shell into wemiller.com/tools/monkr/app/ when the app changes on main,
+# instead of waiting for its daily mirror run.
+#
+# Needs a PAT stored as `PORTFOLIO_DISPATCH_TOKEN` in this repo's secrets (the default
+# GITHUB_TOKEN can't dispatch to another repo): a fine-grained token scoped to
+# blaineam/blaineam.github.io with Contents read-write. Without it this job skips.
+
+name: Notify portfolio to mirror Monkr
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'static/*'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'svelte.config.js'
+      - 'vite.config.ts'
+      - 'scripts/build-portfolio.sh'
+  workflow_dispatch:
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger mirror-app-docs in the portfolio
+        env:
+          GH_TOKEN: ${{ secrets.PORTFOLIO_DISPATCH_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::notice::PORTFOLIO_DISPATCH_TOKEN isn't set; the portfolio's daily mirror will pick this up."
+            exit 0
+          fi
+          gh api -X POST /repos/blaineam/blaineam.github.io/dispatches -f event_type=mirror-app-docs

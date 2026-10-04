@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Monkr</title>
+  <meta name="robots" content="noindex">
+  <script>
+    // Hands the saved work in this origin's localStorage (monkr.wemiller.com) to
+    // Monkr at its new address, which loads this page in a hidden iframe; see
+    // src/lib/legacy-import.ts. It answers only a request from its parent window,
+    // only when that parent is one of the origins below, and posts the reply to
+    // that origin alone. Nothing leaves the browser.
+    (function () {
+      var ALLOWED = __ALLOWED_ORIGINS__;
+      if (window.parent === window) {
+        location.replace(ALLOWED[0] + '/tools/monkr/app/');
+        return;
+      }
+      window.addEventListener('message', function (event) {
+        if (ALLOWED.indexOf(event.origin) < 0 || event.source !== window.parent) return;
+        if (!event.data || event.data.type !== 'monkr-legacy-request') return;
+        var data = {};
+        try {
+          for (var i = 0; i < localStorage.length; i++) {
+            var key = localStorage.key(i);
+            if (key && /^(monkr_|unsplash_key$)/.test(key)) data[key] = localStorage.getItem(key);
+          }
+        } catch (e) { /* storage blocked: answer with nothing */ }
+        window.parent.postMessage({ type: 'monkr-legacy-data', version: 1, data: data }, event.origin);
+      });
+    })();
+  </script>
+</head>
+<body></body>
+</html>

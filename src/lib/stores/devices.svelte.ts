@@ -1,6 +1,7 @@
 import type { DeviceMeta } from '../types';
 import { mergeDevices } from './devices.merge.js';
 import generated from './devices.generated.json';
+import { media } from '../site';
 
 // The device frame PNGs are stored at /devices/{slug}/{colorSlug}.png
 // The screen mask SVG is at /devices/{slug}/display.svg
@@ -435,12 +436,12 @@ class DeviceRegistry {
 
 	/** Get the frame PNG path for a device + color */
 	getFrameUrl(device: DeviceMeta, colorSlug: string): string {
-		return `/devices/${device.slug}/${colorSlug}.png`;
+		return media(`/devices/${device.slug}/${colorSlug}.png`);
 	}
 
 	/** Get the screen mask SVG path for a device */
 	getMaskUrl(device: DeviceMeta): string {
-		return `/devices/${device.slug}/display.svg`;
+		return media(`/devices/${device.slug}/display.svg`);
 	}
 
 	/** Get screen position within the frame as percentages */

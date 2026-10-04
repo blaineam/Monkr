@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://monkr.wemiller.com">
+  <a href="https://wemiller.com/tools/monkr/app/">
     <img src="static/icon-512.png" width="120" alt="Monkr Logo" />
   </a>
 </p>
@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <a href="https://monkr.wemiller.com"><strong>Try it live</strong></a> &bull;
+  <a href="https://wemiller.com/tools/monkr/app/"><strong>Try it live</strong></a> &bull;
   <a href="https://wemiller.com/tools/monkr/">About</a> &bull;
   <a href="#features">Features</a> &bull;
   <a href="#getting-started">Get Started</a> &bull;
@@ -181,7 +181,7 @@ Pre-configured sizes for every platform:
 
 ### Use it now
 
-Head to **[monkr.wemiller.com](https://monkr.wemiller.com)** and start creating.
+Head to **[wemiller.com/tools/monkr/app](https://wemiller.com/tools/monkr/app/)** and start creating.
 
 ### Run locally
 
@@ -202,6 +202,17 @@ npm run preview  # preview the build locally
 ```
 
 The static build outputs to `build/` and can be deployed anywhere - GitHub Pages, Netlify, Vercel, Cloudflare Pages, or your own server.
+
+**How the hosted copy is served.** The app at wemiller.com/tools/monkr/app/ is a
+small shell (~0.6 MB) built by `scripts/build-portfolio.sh` (base path
+`/tools/monkr/app`, output `build-portfolio/`) and mirrored into the portfolio
+site. The device frames and backgrounds (~145 MB) are not copied there: the shell
+loads them from monkr.wemiller.com with CORS (`VITE_MONKR_MEDIA_ORIGIN`, see
+`src/lib/site.ts`). This repo's Pages deploy keeps publishing them, but runs
+`scripts/legacy-site.mjs`, which turns every page on monkr.wemiller.com into a
+redirect to the new address (path, query and hash kept) and adds `migrate.html`,
+which hands saved projects in that origin's localStorage to the new address in
+the browser (`src/lib/legacy-import.ts`; nothing is uploaded).
 
 ### CLI rendering (headless)
 

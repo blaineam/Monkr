@@ -47,6 +47,8 @@
 	import { animationPresets, getValueAtTime, scaleTracksToduration, captureAndExportVideo } from '../animation';
 	import type { AnimationTrack, VideoFormat, AnimResolution } from '../animation';
 	import { onMount } from 'svelte';
+	import { LEGACY_ORIGIN } from '../site';
+	import { pullFromOldSite, mergeSaved, DONE_KEY } from '../legacy-import';
 	import type { ExportFormat, ExportScale, FrameStyle } from '../types';
 
 	let {
@@ -209,6 +211,32 @@
 		}
 	}
 	let projectFileInput: HTMLInputElement | undefined = $state();
+
+	// Monkr used to live at another address; its saves stay in that origin's storage.
+	const legacyHost = LEGACY_ORIGIN ? new URL(LEGACY_ORIGIN).host : '';
+	let legacyStatus = $state('');
+	async function importFromOldSite() {
+		legacyStatus = 'Looking…';
+		const saved = await pullFromOldSite(10000);
+		if (!saved) {
+			legacyStatus = `Couldn't reach ${legacyHost}.`;
+			return;
+		}
+		const replaceCanvas = !!saved.monkr_autosave &&
+			confirm(`Also replace the current canvas with the one you left on ${legacyHost}?`);
+		const result = mergeSaved(saved, replaceCanvas);
+		try { localStorage.setItem(DONE_KEY, '1'); } catch {}
+		if (result.failed.length) {
+			legacyStatus = 'Not enough browser storage to bring everything over. Delete some saved projects and try again.';
+		} else if (!result.written) {
+			legacyStatus = `Nothing new on ${legacyHost}.`;
+		} else if (replaceCanvas) {
+			location.reload();
+		} else {
+			legacyStatus = result.projects === 1 ? 'Brought over 1 project.' : `Brought over ${result.projects} projects.`;
+			refreshProjects();
+		}
+	}
 
 	function refreshProjects() {
 		savedProjects = store.getSavedProjects();
@@ -1090,6 +1118,17 @@
 							if (file) store.loadProject(file).then(refreshProjects);
 						}} />
 				</div>
+
+				{#if LEGACY_ORIGIN}
+					<!-- Saved work left on Monkr's old address -->
+					<div class="space-y-1">
+						<button class="w-full flex items-center justify-center gap-1 rounded-md bg-zinc-800 px-2 py-1.5 text-[10px] text-zinc-400 hover:bg-zinc-700 hover:text-white"
+							onclick={importFromOldSite}>
+							<Upload size={11} /> Import from {legacyHost}
+						</button>
+						{#if legacyStatus}<p class="text-[10px] text-zinc-500" role="status">{legacyStatus}</p>{/if}
+					</div>
+				{/if}
 
 				<!-- Reset -->
 				<button class="w-full rounded-md border border-red-900/50 bg-red-950/30 px-2 py-1.5 text-[10px] text-red-400 hover:bg-red-900/40 hover:text-red-300"

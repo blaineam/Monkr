@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monkr has moved</title>
+  <meta name="robots" content="noindex">
+  <link rel="canonical" href="__NEW_BASE__">
+  <script>
+    // monkr.wemiller.com moved to wemiller.com/tools/monkr/. The Pages deploy
+    // (scripts/legacy-site.mjs) serves this page for every page on the old address
+    // (index.html, 404.html and the app's other routes) and forwards there, keeping
+    // the path, the query and the hash. The device frames and backgrounds under
+    // /devices/ and /backgrounds/ are still served from here: the app at the new
+    // address loads them cross-origin, so this page never sees those requests.
+    //
+    // Saved work lives in this origin's localStorage. Small saves ride along in the
+    // URL fragment (never sent to a server): #monkr-import=<base64url JSON>|<hash>.
+    // Bigger ones are fetched by the new address from /migrate.html in a hidden
+    // iframe; see src/lib/legacy-import.ts.
+    (function () {
+      var base = '__NEW_BASE__';
+      var MAX_FRAGMENT = 256 * 1024;
+      var path = location.pathname.replace(/^\/+/, '').replace(/(^|\/)index\.html$/, '$1').replace(/\.html$/, '');
+      var hash = location.hash.length > 1 ? location.hash.slice(1) : '';
+      var carry = {}, any = false;
+      try {
+        for (var i = 0; i < localStorage.length; i++) {
+          var key = localStorage.key(i);
+          if (key && /^(monkr_|unsplash_key$)/.test(key)) { carry[key] = localStorage.getItem(key); any = true; }
+        }
+      } catch (e) { /* storage blocked: nothing to carry */ }
+      // A first-time visit to the bare address sees the Monkr page; anything else opens the app.
+      var url = base + (any || path || hash || location.search ? 'app/' + path : '') + location.search;
+      var packed = '';
+      if (any) {
+        try {
+          packed = btoa(unescape(encodeURIComponent(JSON.stringify(carry))))
+            .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        } catch (e) { packed = ''; }
+      }
+      if (packed && packed.length <= MAX_FRAGMENT) url += '#monkr-import=' + packed + (hash ? '|' + hash : '');
+      else if (hash) url += '#' + hash;
+      location.replace(url);
+    })();
+  </script>
+  <meta http-equiv="refresh" content="2; url=__NEW_BASE__app/">
+  <style>
+    :root { color-scheme: light dark; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; font: 1.05rem/1.5 system-ui, -apple-system, sans-serif; background: #f6f7f9; color: #14161b; text-align: center; padding: 16px; box-sizing: border-box; }
+    a { color: #c0267a; }
+    @media (prefers-color-scheme: dark) { body { background: #09090b; color: #eef0f5; } a { color: #f472b6; } }
+  </style>
+</head>
+<body>
+  <p>Monkr has moved to <a href="__NEW_BASE__app/">wemiller.com/tools/monkr</a>.</p>
+</body>
+</html>

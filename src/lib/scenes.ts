@@ -1,5 +1,7 @@
 // Scene presets: curated combinations of layout templates + background images
 
+import { media } from './site';
+
 export interface ScenePreset {
 	id: string;
 	name: string;
@@ -40,7 +42,7 @@ export interface ScenePreset {
 	}>;
 }
 
-const bg = (category: string, file: string) => `/backgrounds/original/${category}/${file}`;
+const bg = (category: string, file: string) => media(`/backgrounds/original/${category}/${file}`);
 
 export const scenePresets: ScenePreset[] = [
 	// ─── Single Device Scenes ─────────────────────────────

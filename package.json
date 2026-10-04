@@ -7,7 +7,7 @@
 		"type": "git",
 		"url": "https://github.com/blaineam/Monkr"
 	},
-	"homepage": "https://monkr.wemiller.com",
+	"homepage": "https://wemiller.com/tools/monkr/",
 	"type": "module",
 	"bin": {
 		"monkr": "bin/monkr.mjs"

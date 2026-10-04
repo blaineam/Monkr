@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Deploy monkr.wemiller.com (redirect + media) to GitHub Pages
 
 on:
   push:
@@ -25,6 +25,13 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      # The app lives at wemiller.com/tools/monkr/app/ now (built by the portfolio's
+      # mirror-app-docs workflow with scripts/build-portfolio.sh). monkr.wemiller.com keeps
+      # publishing the full build for its device frames and backgrounds, which the app
+      # loads from here cross-origin, but every page becomes a redirect to the new
+      # address, plus migrate.html, which hands saved projects over (legacy/).
+      - name: Turn the pages into the redirect to wemiller.com
+        run: node scripts/legacy-site.mjs build
       - uses: actions/upload-pages-artifact@v3
         with:
           path: build
