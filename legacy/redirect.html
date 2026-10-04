@@ -22,6 +22,11 @@
       var base = '__NEW_BASE__';
       var MAX_FRAGMENT = 256 * 1024;
       var path = location.pathname.replace(/^\/+/, '').replace(/(^|\/)index\.html$/, '$1').replace(/\.html$/, '');
+      // The app's own pages; any other path (a stale or mistyped link) opens the app itself
+      // rather than a 404 on the new site.
+      var deep = path !== '';
+      if (!/^(calibrate|headless)?\/?$/.test(path)) path = '';
+      path = path.replace(/\/$/, '');
       var hash = location.hash.length > 1 ? location.hash.slice(1) : '';
       var carry = {}, any = false;
       try {
@@ -31,7 +36,7 @@
         }
       } catch (e) { /* storage blocked: nothing to carry */ }
       // A first-time visit to the bare address sees the Monkr page; anything else opens the app.
-      var url = base + (any || path || hash || location.search ? 'app/' + path : '') + location.search;
+      var url = base + (any || deep || hash || location.search ? 'app/' + path : '') + location.search;
       var packed = '';
       if (any) {
         try {
