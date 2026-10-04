@@ -22,11 +22,17 @@
 	<!-- Header -->
 	<header class="flex h-10 flex-shrink-0 items-center justify-between border-b border-zinc-800/60 bg-zinc-900/80 px-4 backdrop-blur-sm">
 		<div class="flex items-center gap-2">
-			<span class="text-sm font-bold tracking-tight">
+			<a href="https://wemiller.com/tools/monkr/?about" class="text-sm font-bold tracking-tight" title="About Monkr">
 				<span class="bg-gradient-to-r from-pink-500 to-violet-500 bg-clip-text text-transparent">Monkr</span>
-			</span>
+			</a>
 		</div>
 		<div class="hidden items-center gap-2 lg:flex">
+			<a
+				href="https://wemiller.com/tools/monkr/?about"
+				class="flex items-center rounded-md px-2 py-1 text-xs text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white"
+			>
+				About
+			</a>
 			<a
 				href="https://github.com/blaineam/Monkr"
 				target="_blank"

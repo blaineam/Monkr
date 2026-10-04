@@ -13,6 +13,7 @@
 
 <p align="center">
   <a href="https://monkr.wemiller.com"><strong>Try it live</strong></a> &bull;
+  <a href="https://wemiller.com/tools/monkr/">About</a> &bull;
   <a href="#features">Features</a> &bull;
   <a href="#getting-started">Get Started</a> &bull;
   <a href="#tech-stack">Tech Stack</a> &bull;
