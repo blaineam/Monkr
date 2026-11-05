@@ -26,6 +26,9 @@ const contentTypes = {
 	'.woff2': 'font/woff2'
 };
 
+// Keep the existing data directory when renaming the product.
+app.setName('Monkr Lite');
+
 const buildDir = path.resolve(__dirname, '..', 'build');
 
 async function serveApp(request) {
@@ -61,6 +64,7 @@ async function serveApp(request) {
 
 async function createWindow() {
 	const window = new BrowserWindow({
+		title: 'DemoPNG-local',
 		icon: path.resolve(__dirname, '..', 'static', 'icon-512.png'),
 		width: 1440,
 		height: 900,
@@ -69,6 +73,7 @@ async function createWindow() {
 		backgroundColor: '#09090b',
 		webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true }
 	});
+	window.on('page-title-updated', (event) => { event.preventDefault(); });
 	window.webContents.setWindowOpenHandler(({ url }) => {
 		if (/^https:\/\//i.test(url)) shell.openExternal(url);
 		return { action: 'deny' };
