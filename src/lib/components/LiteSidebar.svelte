@@ -44,7 +44,7 @@
 </script>
 
 <aside class="h-full overflow-y-auto border-r border-zinc-800 bg-zinc-900 p-5 text-zinc-200">
-	<h1 class="mb-1 text-xl font-bold text-pink-400">Monkr Lite</h1>
+	<h1 class="mb-1 text-xl font-bold text-pink-400">DemoPNG-local</h1>
 	<p class="mb-6 text-xs text-zinc-400">截图加边框，导出透明无留白 PNG</p>
 	{#if current}
 		<div class="space-y-5">

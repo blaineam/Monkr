@@ -1,362 +1,76 @@
-> **Monkr Lite branch:** A focused Windows portable edition with phone and tablet
-> frames, screenshot borders, and transparent PNG export that trims all outer
-> transparent pixels. Download and clipboard use the same lossless capture.
-> Choose 1x–4x resolution. Uploaded images are preserved between sessions.
-> Build with `npm run build:portable`; settings live beside the executable in
-> `MonkrLitePortableData`. The full edition is on `codex/windows-portable`.
+# DemoPNG-local
 
-<p align="center">
-  <a href="https://monkr.wemiller.com">
-    <img src="static/icon-512.png" width="120" alt="Monkr Logo" />
-  </a>
-</p>
+本地运行的截图套壳工具，基于 [Monkr](https://github.com/blaineam/Monkr) 改造，专注于手机、平板截图加边框及透明 PNG 导出。
 
-<h1 align="center">Monkr</h1>
+仓库：[heiye07/DemoPNG-local](https://github.com/heiye07/DemoPNG-local)
 
-<p align="center">
-  <strong>Beautiful device mockups in seconds.</strong><br/>
-  Free, open-source, and runs entirely in your browser.
-</p>
+## 功能
 
-<p align="center">
-  <a href="https://monkr.wemiller.com"><strong>Try it live</strong></a> &bull;
-  <a href="#features">Features</a> &bull;
-  <a href="#getting-started">Get Started</a> &bull;
-  <a href="#tech-stack">Tech Stack</a> &bull;
-  <a href="#license">License</a>
-</p>
+- 上传截图，选择手机或平板设备及配色。
+- 支持设备边框、线框、无边框三种样式。
+- 无损 PNG 导出，自动裁掉外围透明留白。
+- 支持 1×～4× 导出及复制 PNG 到剪贴板。
+- 默认保留上传图片原始数据，便于下次继续使用。
 
-<p align="center">
-  <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License" />
-  <img src="https://img.shields.io/badge/svelte-5-ff3e00.svg" alt="Svelte 5" />
-  <img src="https://img.shields.io/badge/typescript-5.9-3178c6.svg" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/tailwind-4-38bdf8.svg" alt="Tailwind CSS 4" />
-</p>
+## 下载与使用
 
-<br/>
+前往 [Releases](https://github.com/heiye07/DemoPNG-local/releases) 下载。以每次发布实际附带的文件为准。
 
-<p align="center">
-  <img src="static/og-image.jpg" width="700" alt="Monkr Preview" />
-</p>
+| 系统 | 文件 | 使用方式 |
+| --- | --- | --- |
+| Windows x64 | `.exe` 便携版 | 放入可写文件夹，双击运行，无需安装 |
+| macOS Apple Silicon | 名称含 `arm64` 的 `.dmg` 或 `.zip` | 打开 DMG 后拖入“应用程序”，或解压 ZIP |
+| macOS Intel | 名称含 `x64` 的 `.dmg` 或 `.zip` | 打开 DMG 后拖入“应用程序”，或解压 ZIP |
 
----
+macOS 已配置打包流程，需在 macOS 环境构建并验证后提供下载。目前未配置 Apple Developer ID 签名和公证，系统可能提示无法验证开发者。
 
-## Why Monkr?
+上传截图 → 选择设备和边框 → 选择倍率 → 下载或复制 PNG。提高倍率会增加输出像素，无法恢复原图缺失的细节。
 
-Most mockup tools are either bloated desktop apps, locked behind subscriptions, or require uploading your screenshots to someone else's server. **Monkr is different** - it's a fast, privacy-first mockup generator that runs 100% in your browser. No accounts, no uploads, no watermarks.
+## 数据保存
 
-Drop in a screenshot, pick a device, choose a background, and download a polished mockup in seconds. Need App Store screenshots? Animated previews? Multi-device compositions? Monkr handles it all.
+- Windows：EXE 旁的 `MonkrLitePortableData` 文件夹；迁移时与 EXE 一起复制。
+- macOS：`~/Library/Application Support/Monkr Lite`。
+- 内部标识与旧数据目录名称继续沿用，便于兼容旧版；显示名称为 DemoPNG-local。
+- 基础截图编辑在本地完成；源码中保留的在线图片、字体等功能可能需要联网。
 
----
+## 本地开发
 
-## Features
+建议 Node.js 22 和 npm。
 
-### 20+ Device Frames
-
-Pixel-perfect frames for the devices people actually use:
-
-| Category | Devices |
-|----------|---------|
-| **iPhone** | 18 Pro Max, 18 Pro & iPhone Duo — inner/outer, folded & unfolded — (official Apple bezels); 17 Pro Max, 17 Pro, 17 Air, 17, 16 Pro Max, 16 Pro, 16 Plus, 16, 15 series, 14 series |
-| **Android** | Pixel 7 Pro, Nothing Phone |
-| **iPad** | Pro (M5) 13" & 11" (official Apple bezels), Pro 13", Pro 11", Air, Mini |
-| **Mac** | MacBook Pro 16", MacBook Air M2, MacBook Air 13" |
-| **Desktop** | iMac M4 24" & MacBook Neo (official Apple bezels), iMac 24", iMac Pro, Pro Display XDR |
-| **Watch** | Apple Watch Series 11 46mm, Apple Watch Ultra 3 49mm — official Apple product bezels (see [docs/APPLE-BEZELS.md](docs/APPLE-BEZELS.md)) |
-| **Misc** | Apple Studio Display / Studio Display XDR 2026 (official Apple bezels, marketing frames only — no ASC screenshot type) |
-| **Other** | Apple TV 4K, Flat Screen TV, Browser (Light & Dark) |
-
-Each device includes multiple color variants and can be freely positioned, scaled, rotated, and tilted in 3D.
-
-Official Apple product-bezel frames are kept in sync with
-[Apple Design Resources](https://developer.apple.com/design/resources/) by
-`npm run sync-bezels` — it discovers every published `Bezel-*.dmg`, diffs
-against `static/devices/manifest.json`, measures the screen cutouts, and
-generates registry entries + mask SVGs automatically. A new device class
-shows up on its own — the run flags anything a human must decide (a frame
-with more than one screen, a cutout no App Store screenshot size fits, a
-folding device) instead of importing it silently. See
-[docs/APPLE-BEZELS.md](docs/APPLE-BEZELS.md) for the workflow, flags, and
-license notes.
-
-### Backgrounds That Pop
-
-- **30+ gradient presets** - Cosmic, warm, cool, nature, pastel, neon, and mesh gradients
-- **100+ curated images** - Abstract, cosmic, earth, holographic, mystic, glass, radiant, vintage, and classic macOS wallpapers (Big Sur through Tahoe)
-- **Solid colors** with full color picker
-- **Transparent** backgrounds for compositing
-- **Trim transparent edges** when exporting a transparent PNG to remove empty canvas space around the visible mockup
-- **Custom uploads** - drag & drop any image
-- **Unsplash integration** - search millions of free photos
-
-### Windows portable app
-
-Run `npm run build:portable` on Windows to create a standalone executable in `release/`.
-The executable includes the app and device assets; no local web server or installation is needed.
-Project settings are kept in a `MonkrPortableData` folder beside the executable. Move that
-folder with the executable to carry your settings to another computer. Online features such
-as Unsplash images, downloaded fonts, and video encoding still require an internet connection.
-
-For maximum still-image quality, choose PNG and 4x in Export. **Preserve original uploads
-between sessions** is enabled by default and stores uploaded image bytes without the older
-autosave resize/JPEG conversion. Images already saved by an older version must be uploaded
-again to recover their original detail. The mockup is still rasterized at the chosen output
-size, so 4x creates more pixels than 1x or 2x; PNG encoding itself is lossless.
-
-### Scene Presets
-
-One-click layouts that look professional instantly:
-
-- **Single device** - Hero shots, centered, tilted
-- **Duo layouts** - Side by side, overlapping, responsive pairs
-- **Multi-device** - Fan spreads, perspective rows, cascades
-- **Ecosystem** - Full Apple lineup in one shot
-- **App Store** - Pre-configured multi-slide layouts for iPhone and iPad
-
-### App Store Screenshot Mode
-
-Built specifically for shipping apps:
-
-- Toggle App Store mode and pick your platform (iPhone 6.7", 6.1", iPad 12.9", 11")
-- Canvas automatically sizes to App Store guidelines
-- Choose 1-10 sections that split the canvas into slides
-- Design across all slides using the same tools
-- Export slices each section into a separate screenshot
-- Visual divider lines and section labels keep you oriented
-
-### Text Overlays
-
-- Multiple font families with weight control (100-900)
-- Alignment, letter spacing, and line height
-- Text shadow with color, blur, and offset
-- **Arc text** for curved headlines
-- Position above, below, or anywhere on canvas
-- 3D tilt and rotation
-
-### Animation & Video Export
-
-Create animated mockups and export as video:
-
-- **7 animation presets** - Full Spin, Rock, Tilt Showcase, Float, Zoom Pulse, Slide In, Rise
-- Adjustable duration and FPS
-- Loop support
-- Export as **MP4** (H.264), **MOV**, or **WebM** (VP9)
-- Powered by FFmpeg WASM - encoding happens entirely in your browser
-
-### Export Options
-
-| Format | Use Case |
-|--------|----------|
-| **PNG** | Lossless quality, transparency support |
-| **JPG** | Smaller files, great for web — no alpha channel, so it's disabled while Background is "None" |
-| **MP4** | Animated mockups, social media |
-| **MOV** | QuickTime-compatible video |
-| **WebM** | Web-optimized video |
-
-All image exports support **1x, 2x, and 3x** scale for retina-quality output. One-click **copy to clipboard** for quick sharing.
-
-### Device Customization
-
-Every device on the canvas can be individually tuned:
-
-- **Position** - Drag or use precise X/Y controls
-- **Scale** - Pinch or slider from tiny to oversized
-- **Rotation** - Free rotation in degrees
-- **3D Tilt** - Perspective tilt on X and Y axes
-- **Shadow** - Color, blur, spread, and offset
-- **Glow** - Edge glow with customizable color and intensity
-- **Frame style** - Full device frame, outline only, or frameless
-
-### Layout Templates
-
-20+ arrangement templates for multi-device compositions:
-
-- Single Center, Tilted, Hero Left/Right
-- Side by Side, Overlap, Stacked
-- Fan, Cascade, Perspective Row
-- Grid 2x2, Scattered, Isometric
-- Phone+Tablet, Laptop+Phone, Floating Stack
-- Showcase 5 and more
-
-### Canvas Presets
-
-Pre-configured sizes for every platform:
-
-- **General** - 16:9, 9:16, 1:1, Ultrawide
-- **Social** - Dribbble, Twitter, Instagram (Post & Story), LinkedIn, Product Hunt, Open Graph
-- **App Store** - All iPhone sizes, iPad, Mac, Apple TV, Apple Watch (46mm & Ultra 49mm)
-- **Google Play** - Phone, Tablet 7" & 10", Feature Graphic
-
-### Quality of Life
-
-- **Auto-save** - Your project persists in localStorage automatically
-- **Import/Export** - Save and load `.monkr` project files
-- **Reset** - One-click clean slate
-- **Mobile friendly** - Responsive sidebar with swipe navigation
-- **Zero server dependency** - Everything runs client-side
-
----
-
-## Getting Started
-
-### Use it now
-
-Head to **[monkr.wemiller.com](https://monkr.wemiller.com)** and start creating.
-
-### Run locally
-
-```bash
-git clone https://github.com/blaineam/Monkr.git
-cd Monkr
-npm install
+```sh
+npm ci
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173) and you're in.
+打开终端显示的本地地址。
 
-### Build for production
-
-```bash
+```sh
+npm run check
 npm run build
-npm run preview  # preview the build locally
 ```
 
-The static build outputs to `build/` and can be deployed anywhere - GitHub Pages, Netlify, Vercel, Cloudflare Pages, or your own server.
+分别执行类型与组件检查、静态页面构建。
 
-### CLI rendering (headless)
+## 桌面版打包
 
-Render `.monkr` projects to framed images from the command line — no clicking
-through the UI. It drives Monkr's own renderer (headless Chromium + the
-`/headless` route), so output is **pixel-identical to the Export button**.
+Windows x64，在 Windows 执行：
 
-```bash
-npm install                         # installs Playwright (a devDependency)
-npx playwright install chromium     # one-time browser download
-
-# render a project's embedded screenshots
-npm run render -- shot.monkr --out out/
-#   or, if linked/installed:  monkr render shot.monkr --out out/
-
-# swap in fresh screenshots (a folder, in name order) and re-save the .monkr
-monkr render App-iphone.monkr --out out/ --save --screenshots raw/iphone/
+```sh
+npm run build:portable
 ```
 
-One framed image is written per screenshot. Useful flags: `--save` (write the
-updated `.monkr`), `--format png|jpg`, `--scale 1|2|3`, `--build` (force a
-rebuild first), and `--device/--color/--canvas` to synthesize a default frame
-when no `.monkr` exists yet. Run `monkr render --help` for the full list. The
-CLI auto-builds the static site on first use and rebuilds automatically when
-`src/` has changed since the last build. Implemented in `bin/monkr.mjs` +
-`cli/render.mjs`, backed by the headless route at `src/routes/headless/`.
+macOS Apple Silicon 和 Intel，在 macOS 执行：
 
-### CLI animation (headless video)
-
-`monkr animate` plays Monkr's animation presets over a project and writes a
-video, using the same renderer frame by frame and the system `ffmpeg`
-(`brew install ffmpeg`) for H.264 encoding. Presets can be **chained**, which
-is what short social clips (YouTube Shorts, Reels) need: an entrance, then a
-loop.
-
-```bash
-# rise in from below, then float for the rest of a 7-second 9:16 clip
-monkr animate short.monkr --out short.mp4 --duration 7000 --relative \
-  --sequence "rise@0:1400,float@1400:7000"
+```sh
+npm run build:mac
 ```
 
-`--sequence` takes `preset@start:end` steps in milliseconds (a bare preset name
-runs the whole clip). A step longer than its preset repeats whole cycles, and a
-step that continues a property picks up where the previous one ended, so chains
-never jump. `--relative` applies presets as offsets from each device's own
-position and pose, instead of the editor's absolute values, so a composed layout
-keeps its composition. Other flags: `--fps`, `--silent-audio` (adds a silent AAC
-track), `--build`.
+产物位于 `release/`：Windows 为便携 EXE，macOS 为各架构的 DMG 和 ZIP。
 
-Add music with [Tom](https://github.com/blaineam/Tom), a seeded music machine:
-`--music synthwave` (or `--music "chip:#road-trip"` for a specific,
-shareable tune) scores the clip with a Tom jingle whose final hit lands at
-`--music-hit` ms (default: 74% of the clip). Tom is optional. Monkr finds it via
-`TOM_BIN` or `tom` on your PATH, and only needs it when you ask for music. Implemented in `cli/animate.mjs`; the chaining and relative
-math live in `src/lib/animation.ts` (`buildSequenceTracks`, `resolveTrackValue`).
+GitHub Actions 中手动运行 **Desktop packages** 工作流，可分别在 Windows、macOS 环境构建，再到 Artifacts 下载。该流程不会自动创建公开 Release。正式分发 Mac 版前，需要另行配置签名、公证并完成真机验证。
 
----
+修改名称、版本、界面或打包配置后，应重新打包；仅重命名旧 EXE 不会更新内部信息。
 
-## Tech Stack
+## 技术与许可
 
-| Layer | Technology |
-|-------|-----------|
-| **Framework** | [SvelteKit](https://kit.svelte.dev) 2 + [Svelte](https://svelte.dev) 5 (runes) |
-| **Language** | [TypeScript](https://typescriptlang.org) 5.9 |
-| **Styling** | [Tailwind CSS](https://tailwindcss.com) 4 |
-| **Icons** | [Lucide](https://lucide.dev) |
-| **Image Export** | [html-to-image](https://github.com/bubkoo/html-to-image) |
-| **Video Export** | [FFmpeg WASM](https://ffmpegwasm.netlify.app) |
-| **Build** | [Vite](https://vitejs.dev) 7 |
-| **Deploy** | Static adapter (GitHub Pages) |
-
----
-
-## Project Structure
-
-```
-src/
-├── lib/
-│   ├── components/     # Svelte components (Canvas, Sidebar, ExportButton, etc.)
-│   ├── stores/         # State management with Svelte 5 runes
-│   ├── animation.ts    # Animation system + FFmpeg video export
-│   ├── backgrounds.ts  # Curated background image registry
-│   ├── export.ts       # Image export + App Store section slicing
-│   ├── fonts.ts        # Font loading and management
-│   ├── gradients.ts    # Gradient preset definitions
-│   ├── mockups.ts      # Perspective mockup scenes
-│   ├── presets.ts      # Canvas size presets
-│   ├── scenes.ts       # One-click scene presets
-│   ├── templates.ts    # Layout arrangement templates
-│   ├── types.ts        # TypeScript type definitions
-│   └── unsplash.ts     # Unsplash API integration
-├── routes/
-│   └── +page.svelte    # Main app page
-└── app.html            # HTML shell
-static/
-├── backgrounds/        # 100+ curated background images
-├── devices/            # Device frame PNGs (all sizes + colors)
-│   └── manifest.json   # Apple official-bezel sync state (sync-bezels)
-└── ...                 # Favicons, OG image, manifest
-tools/
-├── sync-bezels.mjs     # Sync frames with Apple's official Product Bezels
-├── measure-bezel.mjs   # PNG alpha-channel screen-cutout measurement
-└── test/               # Unit + headless end-to-end tests (npm test)
-```
-
----
-
-## Contributing
-
-Contributions are welcome! Feel free to open issues or submit pull requests.
-
-1. Fork the repo
-2. Create a feature branch (`git checkout -b feature/cool-thing`)
-3. Commit your changes
-4. Push to the branch (`git push origin feature/cool-thing`)
-5. Open a Pull Request
-
-Before opening a PR:
-
-- `npm test` — unit + headless end-to-end tests. The e2e tests drive a real
-  Chromium (`npx playwright install chromium` once); they skip when no browser
-  is installed.
-- `npm run check` — `svelte-check` must report no errors.
-
-CI runs the same two commands on every pull request. For larger changes, open
-an issue first so the approach can be discussed before you build it.
-
----
-
-## License
-
-[MIT](LICENSE) - do whatever you want with it.
-
----
-
-<p align="center">
-  Made by <a href="https://wemiller.com">Blaine Miller</a>
-</p>
+采用 Svelte 5、SvelteKit、TypeScript、Tailwind CSS 与 Electron。源自 Monkr，遵循 [MIT 许可证](LICENSE)。第三方设备素材受各自许可约束。

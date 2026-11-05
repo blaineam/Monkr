@@ -1,49 +1,51 @@
 {
-	"name": "monkr",
-	"private": true,
-	"version": "0.0.4-lite.0",
-	"license": "MIT",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/blaineam/Monkr"
-	},
-	"homepage": "https://monkr.wemiller.com",
-	"type": "module",
-	"main": "desktop/main.cjs",
-	"bin": {
-		"monkr": "bin/monkr.mjs"
-	},
-	"scripts": {
-		"dev": "vite dev",
-		"build": "vite build",
-		"build:portable": "npm run build && electron-builder --win portable --x64 --publish never",
-		"preview": "vite preview",
-		"render": "node bin/monkr.mjs render",
-		"sync-bezels": "node tools/sync-bezels.mjs",
-		"test": "node --test --test-concurrency=1 \"tools/test/*.test.mjs\"",
-		"prepare": "svelte-kit sync || echo ''",
-		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
-	},
-	"devDependencies": {
-		"@sveltejs/adapter-auto": "^7.0.0",
-		"@sveltejs/kit": "^2.50.2",
-		"@sveltejs/vite-plugin-svelte": "^6.2.4",
-		"@tailwindcss/vite": "^4.2.2",
-		"electron": "^44.4.5",
-		"electron-builder": "^26.15.3",
-		"playwright": "^1.49.0",
-		"svelte": "^5.54.0",
-		"svelte-check": "^4.4.2",
-		"tailwindcss": "^4.2.2",
-		"typescript": "^5.9.3",
-		"vite": "^7.3.1"
-	},
-	"dependencies": {
-		"@ffmpeg/ffmpeg": "^0.12.15",
-		"@ffmpeg/util": "^0.12.2",
-		"@sveltejs/adapter-static": "^3.0.10",
-		"html-to-image": "^1.11.13",
-		"lucide-svelte": "^1.0.1"
-	}
+  "name": "demopng-local",
+  "private": true,
+  "version": "0.0.5",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/heiye07/DemoPNG-local.git"
+  },
+  "homepage": "https://monkr.wemiller.com",
+  "type": "module",
+  "main": "desktop/main.cjs",
+  "bin": {
+    "monkr": "bin/monkr.mjs"
+  },
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "build:portable": "npm run build && electron-builder --win portable --x64 --publish never",
+    "preview": "vite preview",
+    "render": "node bin/monkr.mjs render",
+    "sync-bezels": "node tools/sync-bezels.mjs",
+    "test": "node --test --test-concurrency=1 \"tools/test/*.test.mjs\"",
+    "prepare": "svelte-kit sync || echo ''",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "build:mac": "npm run build && electron-builder --mac --publish never"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-auto": "^7.0.0",
+    "@sveltejs/kit": "^2.50.2",
+    "@sveltejs/vite-plugin-svelte": "^6.2.4",
+    "@tailwindcss/vite": "^4.2.2",
+    "electron": "^44.4.5",
+    "electron-builder": "^26.15.3",
+    "playwright": "^1.49.0",
+    "svelte": "^5.54.0",
+    "svelte-check": "^4.4.2",
+    "tailwindcss": "^4.2.2",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1"
+  },
+  "dependencies": {
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
+    "@sveltejs/adapter-static": "^3.0.10",
+    "html-to-image": "^1.11.13",
+    "lucide-svelte": "^1.0.1"
+  },
+  "productName": "DemoPNG-local"
 }
