@@ -1,4 +1,4 @@
-import type { ClientInit } from '@sveltejs/kit';
+import type { ClientInit } from '@sveltejs/kit/hooks';
 import { importOnStart } from '$lib/legacy-import';
 import { LEGACY_ORIGIN } from '$lib/site';
 

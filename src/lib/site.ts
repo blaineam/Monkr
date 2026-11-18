@@ -6,7 +6,7 @@
 // frames and background photos stay on monkr.wemiller.com and are fetched
 // cross-origin. GitHub Pages answers those with `Access-Control-Allow-Origin: *`,
 // so they load in CORS mode and never taint an export.
-import { base } from '$app/paths';
+import { asset } from '$app/paths';
 
 const env = import.meta.env;
 
@@ -15,7 +15,7 @@ export const MEDIA_ORIGIN: string = (env.VITE_MONKR_MEDIA_ORIGIN ?? '').replace(
 
 /** URL of a file under static/devices or static/backgrounds, e.g. media('/devices/x/y.png'). */
 export function media(path: string): string {
-	return (MEDIA_ORIGIN || base) + path;
+	return MEDIA_ORIGIN ? MEDIA_ORIGIN + path : asset(path as Parameters<typeof asset>[0]);
 }
 
 /** The address Monkr used to live at, whose saved projects this build can bring over; '' = none. */

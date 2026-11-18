@@ -16,7 +16,6 @@ on:
       - 'static/*'
       - 'package.json'
       - 'package-lock.json'
-      - 'svelte.config.js'
       - 'vite.config.ts'
       - 'scripts/build-portfolio.sh'
   workflow_dispatch:
