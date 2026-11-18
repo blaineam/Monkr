@@ -1,6 +1,6 @@
 {
 	"version": 1,
-	"updatedAt": "2026-09-10T07:40:34.469Z",
+	"updatedAt": "2026-11-03T14:08:23.334Z",
 	"sources": {
 		"Bezel-Apple-Watch-Series-11-2025.dmg": {
 			"name": "Apple Watch Series 11",
@@ -1220,6 +1220,30 @@
 					}
 				}
 			}
+		},
+		"Bezel-iPad-mini-(A20-Pro).dmg": {
+			"name": "iPad mini (A20 Pro)",
+			"url": "https://devimages-cdn.apple.com/design/resources/download/Bezel-iPad-mini-(A20-Pro).dmg",
+			"sha256": null,
+			"size": null,
+			"fetchedAt": null,
+			"discoveredAt": "2026-11-03T14:08:23.334Z",
+			"deviceClass": "ipad",
+			"status": "available",
+			"managed": false,
+			"slugs": {}
+		},
+		"Bezel-MacBook-Pro-PROLED-XDR-Display.dmg": {
+			"name": "MacBook Pro PROLED XDR Display",
+			"url": "https://devimages-cdn.apple.com/design/resources/download/Bezel-MacBook-Pro-PROLED-XDR-Display.dmg",
+			"sha256": null,
+			"size": null,
+			"fetchedAt": null,
+			"discoveredAt": "2026-11-03T14:08:23.334Z",
+			"deviceClass": "mac",
+			"status": "available",
+			"managed": false,
+			"slugs": {}
 		}
 	}
 }
