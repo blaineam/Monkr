@@ -57,8 +57,8 @@
 		canvasRef: HTMLDivElement | undefined;
 	} = $props();
 
-	type SectionId = 'objects' | 'canvas' | 'background' | 'transform' | 'text' | 'export' | 'project' | 'appstore' | 'animation';
-	let openSections = $state<Set<SectionId>>(new Set(['objects', 'canvas']));
+	type SectionId = 'objects' | 'device-settings' | 'canvas' | 'background' | 'text' | 'export' | 'project' | 'appstore' | 'animation';
+	let openSections = $state<Set<SectionId>>(new Set(['objects', 'device-settings', 'canvas']));
 
 	function toggleSection(id: SectionId) {
 		const next = new Set(openSections);
@@ -69,6 +69,9 @@
 
 	let selectedObj = $derived(store.selectedObject);
 	let selectedDevice = $derived(selectedObj ? deviceRegistry.getDevice(selectedObj.deviceId) : undefined);
+	let shadowOpacity = $derived(selectedObj?.shadow.opacity ?? Number(
+		selectedObj?.shadow.color.match(/^rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\s*\)$/i)?.[1] ?? 1
+	));
 	let bgImageInput = $state<HTMLInputElement | undefined>(undefined);
 
 	// Gradient categories
@@ -324,7 +327,7 @@
 	<div class="space-y-0.5 p-3">
 
 		<!-- ═══ SCENE OBJECTS ════════════════════════════════ -->
-		<button class="section-header" onclick={() => toggleSection('objects')}>
+		<button class="section-header" aria-expanded={openSections.has('objects')} onclick={() => toggleSection('objects')}>
 			<span class="flex items-center gap-2"><Layers size={14} /> Scene</span>
 			{#if openSections.has('objects')}<ChevronUp size={12} />{:else}<ChevronDown size={12} />{/if}
 		</button>
@@ -526,129 +529,145 @@
 								{/each}
 							</div>
 						</div>
-
-						<!-- Device color -->
-						{#if selectedDevice && selectedDevice.colors.length > 1}
-							<div class="space-y-1">
-								<span class="text-[10px] font-medium text-zinc-500">Color</span>
-								<div class="flex flex-wrap gap-1">
-									{#each selectedDevice.colors as color}
-										<button
-											class="rounded-md px-2 py-0.5 text-[10px] transition-all
-												{selectedObj?.deviceColorId === color.id
-													? 'bg-pink-600/20 text-pink-400 ring-1 ring-pink-600/40'
-													: 'bg-zinc-800 text-zinc-500 hover:text-zinc-400'}"
-											onclick={() => store.setObjectDeviceColor(selectedObj!.id, color.id)}
-										>{color.name}</button>
-									{/each}
-								</div>
-							</div>
-						{/if}
-
-						<!-- Frame style -->
-						<div class="space-y-1">
-							<span class="text-[10px] font-medium text-zinc-500">Frame</span>
-							<div class="grid grid-cols-3 gap-0.5 rounded-lg bg-zinc-800/80 p-0.5">
-								{#each [
-									{ style: 'default', label: 'Solid' },
-									{ style: 'outline', label: 'Outline' },
-									{ style: 'none', label: 'None' }
-								] as { style, label }}
-									<button
-										class="rounded-md py-1 text-[10px] font-medium transition-colors
-											{selectedObj?.frameStyle === style ? 'bg-zinc-700 text-white' : 'text-zinc-500'}"
-										onclick={() => store.setObjectFrameStyle(selectedObj!.id, style as FrameStyle)}
-									>{label}</button>
-								{/each}
-							</div>
-							{#if selectedObj.frameStyle === 'none'}
-								<Slider label="Corner Radius" value={selectedObj.borderRadius} min={0} max={80} step={1} unit="px"
-									onchange={(v) => store.updateObject(selectedObj!.id, { borderRadius: v })} />
-							{/if}
-						</div>
-
-						<!-- Position & Transform -->
-						<div class="space-y-2">
-							<span class="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">Transform</span>
-							<PositionPad x={selectedObj.x} y={selectedObj.y}
-								onchange={(nx, ny) => store.updateObject(selectedObj!.id, { x: nx, y: ny })} />
-							<Slider label="Scale" value={selectedObj.scale} min={0.2} max={10} step={0.05} unit="x"
-								onchange={(v) => store.updateObject(selectedObj!.id, { scale: v })} />
-							<Slider label="Rotation" value={selectedObj.rotation} min={-180} max={180} step={1} unit="°"
-								onchange={(v) => store.updateObject(selectedObj!.id, { rotation: v })} />
-							<TiltPad tiltX={selectedObj.tiltX} tiltY={selectedObj.tiltY}
-								onchange={(tx, ty) => store.updateObject(selectedObj!.id, { tiltX: tx, tiltY: ty })} />
-						</div>
-
-						<!-- Shadow -->
-						<div class="space-y-2">
-							<div class="flex items-center justify-between">
-								<span class="text-[10px] font-medium text-zinc-500">Shadow</span>
-								<button
-									class="h-4 w-7 rounded-full transition-colors {selectedObj.shadow.enabled ? 'bg-pink-600' : 'bg-zinc-700'}"
-									onclick={() => store.setObjectShadow(selectedObj!.id, { enabled: !selectedObj!.shadow.enabled })}
-								>
-									<div class="h-3 w-3 rounded-full bg-white transition-transform
-										{selectedObj.shadow.enabled ? 'translate-x-[14px]' : 'translate-x-0.5'}"></div>
-								</button>
-							</div>
-							{#if selectedObj.shadow.enabled}
-								<Slider label="Blur" value={selectedObj.shadow.blur} min={0} max={120} step={1} unit="px"
-									onchange={(v) => store.setObjectShadow(selectedObj!.id, { blur: v })} />
-								<Slider label="Offset Y" value={selectedObj.shadow.offsetY} min={-60} max={60} step={1} unit="px"
-									onchange={(v) => store.setObjectShadow(selectedObj!.id, { offsetY: v })} />
-								<Slider label="Offset X" value={selectedObj.shadow.offsetX} min={-60} max={60} step={1} unit="px"
-									onchange={(v) => store.setObjectShadow(selectedObj!.id, { offsetX: v })} />
-								<Slider label="Spread" value={selectedObj.shadow.spread} min={-20} max={40} step={1} unit="px"
-									onchange={(v) => store.setObjectShadow(selectedObj!.id, { spread: v })} />
-								<ColorPicker label="Shadow Color" value={selectedObj.shadow.color.startsWith('rgba')? '#000000' : selectedObj.shadow.color}
-									onchange={(v) => store.setObjectShadow(selectedObj!.id, { color: v })} />
-							{/if}
-						</div>
-
-						<!-- Glow -->
-						<div class="space-y-2">
-							<div class="flex items-center justify-between">
-								<span class="text-[10px] font-medium text-zinc-500">Edge Glow</span>
-								<button
-									class="h-4 w-7 rounded-full transition-colors {selectedObj.glow.enabled ? 'bg-pink-600' : 'bg-zinc-700'}"
-									onclick={() => store.setObjectGlow(selectedObj!.id, { enabled: !selectedObj!.glow.enabled })}
-								>
-									<div class="h-3 w-3 rounded-full bg-white transition-transform
-										{selectedObj.glow.enabled ? 'translate-x-[14px]' : 'translate-x-0.5'}"></div>
-								</button>
-							</div>
-							{#if selectedObj.glow.enabled}
-								<Slider label="Blur" value={selectedObj.glow.blur} min={1} max={60} step={1} unit="px"
-									onchange={(v) => store.setObjectGlow(selectedObj!.id, { blur: v })} />
-								<ColorPicker label="Glow Color" value={selectedObj.glow.color.startsWith('rgba') ? '#ffffff' : selectedObj.glow.color}
-									onchange={(v) => store.setObjectGlow(selectedObj!.id, { color: v })} />
-							{/if}
-						</div>
-
-						<!-- Swap Screenshot -->
-						{#if store.sceneObjects.length > 1 && selectedObj.screenshotUrl}
-							<div class="space-y-1">
-								<span class="text-[10px] font-medium text-zinc-500">Swap Screenshot</span>
-								<div class="flex flex-wrap gap-1">
-									{#each store.sceneObjects.filter(o => o.id !== selectedObj!.id) as otherObj}
-										{@const otherDevice = deviceRegistry.getDevice(otherObj.deviceId)}
-										<button
-											class="rounded-md bg-zinc-800 px-2 py-1 text-[9px] text-zinc-500 hover:bg-zinc-700 hover:text-zinc-300"
-											onclick={() => {
-												const myUrl = selectedObj!.screenshotUrl;
-												const myFile = selectedObj!.screenshotFile;
-												store.updateObject(selectedObj!.id, { screenshotUrl: otherObj.screenshotUrl, screenshotFile: otherObj.screenshotFile });
-												store.updateObject(otherObj.id, { screenshotUrl: myUrl, screenshotFile: myFile });
-											}}
-										>↔ {otherDevice?.name ?? 'Device'}</button>
-									{/each}
-								</div>
-							</div>
-						{/if}
 					</div>
 				{/if}
 			</div>
+		{/if}
+
+		{#if selectedObj}
+			<button class="section-header" aria-expanded={openSections.has('device-settings')} onclick={() => toggleSection('device-settings')}>
+				<span class="flex items-center gap-2"><SlidersHorizontal size={14} /> Device Settings</span>
+				{#if openSections.has('device-settings')}<ChevronUp size={12} />{:else}<ChevronDown size={12} />{/if}
+			</button>
+			{#if openSections.has('device-settings')}
+				<div class="section-body space-y-3">
+					<!-- Device color -->
+					{#if selectedDevice && selectedDevice.colors.length > 1}
+						<div class="space-y-1">
+							<span class="text-[10px] font-medium text-zinc-500">Color</span>
+							<div class="flex flex-wrap gap-1">
+								{#each selectedDevice.colors as color}
+									<button
+										class="rounded-md px-2 py-0.5 text-[10px] transition-all
+											{selectedObj?.deviceColorId === color.id
+												? 'bg-pink-600/20 text-pink-400 ring-1 ring-pink-600/40'
+												: 'bg-zinc-800 text-zinc-500 hover:text-zinc-400'}"
+										onclick={() => store.setObjectDeviceColor(selectedObj!.id, color.id)}
+									>{color.name}</button>
+								{/each}
+							</div>
+						</div>
+					{/if}
+
+					<!-- Frame style -->
+					<div class="space-y-1">
+						<span class="text-[10px] font-medium text-zinc-500">Frame</span>
+						<div class="grid grid-cols-3 gap-0.5 rounded-lg bg-zinc-800/80 p-0.5">
+							{#each [
+								{ style: 'default', label: 'Solid' },
+								{ style: 'outline', label: 'Outline' },
+								{ style: 'none', label: 'None' }
+							] as { style, label }}
+								<button
+									class="rounded-md py-1 text-[10px] font-medium transition-colors
+										{selectedObj?.frameStyle === style ? 'bg-zinc-700 text-white' : 'text-zinc-500'}"
+									onclick={() => store.setObjectFrameStyle(selectedObj!.id, style as FrameStyle)}
+								>{label}</button>
+							{/each}
+						</div>
+						{#if selectedObj.frameStyle === 'none'}
+							<Slider label="Corner Radius" value={selectedObj.borderRadius} min={0} max={80} step={1} unit="px"
+								onchange={(v) => store.updateObject(selectedObj!.id, { borderRadius: v })} />
+						{/if}
+					</div>
+
+					<!-- Position & Transform -->
+					<div class="space-y-2">
+						<span class="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">Transform</span>
+						<PositionPad x={selectedObj.x} y={selectedObj.y}
+							onchange={(nx, ny) => store.updateObject(selectedObj!.id, { x: nx, y: ny })} />
+						<Slider label="Scale" value={selectedObj.scale} min={0.2} max={10} step={0.05} unit="x"
+							onchange={(v) => store.updateObject(selectedObj!.id, { scale: v })} />
+						<Slider label="Rotation" value={selectedObj.rotation} min={-180} max={180} step={1} unit="°"
+							onchange={(v) => store.updateObject(selectedObj!.id, { rotation: v })} />
+						<TiltPad tiltX={selectedObj.tiltX} tiltY={selectedObj.tiltY}
+							onchange={(tx, ty) => store.updateObject(selectedObj!.id, { tiltX: tx, tiltY: ty })} />
+						{#if selectedDevice && selectedObj.frameStyle === 'default' && deviceRegistry.supportsBodyDepth(selectedDevice)}
+							<Slider label="Body Depth" value={selectedObj.bodyDepth ?? 0} min={0} max={40} step={1} unit="px"
+								onchange={(v) => store.updateObject(selectedObj!.id, { bodyDepth: v })} />
+						{/if}
+					</div>
+
+					<!-- Shadow -->
+					<div class="space-y-2">
+						<div class="flex items-center justify-between">
+							<span class="text-[10px] font-medium text-zinc-500">Shadow</span>
+							<button
+								class="h-4 w-7 rounded-full transition-colors {selectedObj.shadow.enabled ? 'bg-pink-600' : 'bg-zinc-700'}"
+								onclick={() => store.setObjectShadow(selectedObj!.id, { enabled: !selectedObj!.shadow.enabled })}
+							>
+								<div class="h-3 w-3 rounded-full bg-white transition-transform
+									{selectedObj.shadow.enabled ? 'translate-x-[14px]' : 'translate-x-0.5'}"></div>
+							</button>
+						</div>
+						{#if selectedObj.shadow.enabled}
+							<Slider label="Blur" value={selectedObj.shadow.blur} min={0} max={120} step={1} unit="px"
+								onchange={(v) => store.setObjectShadow(selectedObj!.id, { blur: v })} />
+							<Slider label="Offset Y" value={selectedObj.shadow.offsetY} min={-60} max={60} step={1} unit="px"
+								onchange={(v) => store.setObjectShadow(selectedObj!.id, { offsetY: v })} />
+							<Slider label="Offset X" value={selectedObj.shadow.offsetX} min={-60} max={60} step={1} unit="px"
+								onchange={(v) => store.setObjectShadow(selectedObj!.id, { offsetX: v })} />
+							<Slider label="Spread" value={selectedObj.shadow.spread} min={-20} max={40} step={1} unit="px"
+								onchange={(v) => store.setObjectShadow(selectedObj!.id, { spread: v })} />
+							<ColorPicker label="Shadow Color" value={selectedObj.shadow.color.startsWith('rgba')? '#000000' : selectedObj.shadow.color}
+								onchange={(v) => store.setObjectShadow(selectedObj!.id, { color: v, opacity: shadowOpacity })} />
+							<Slider label="Shadow Opacity" value={Math.round(shadowOpacity * 100)} min={0} max={100} step={1} unit="%"
+								onchange={(v) => store.setObjectShadow(selectedObj!.id, { opacity: v / 100 })} />
+						{/if}
+					</div>
+
+					<!-- Glow -->
+					<div class="space-y-2">
+						<div class="flex items-center justify-between">
+							<span class="text-[10px] font-medium text-zinc-500">Edge Glow</span>
+							<button
+								class="h-4 w-7 rounded-full transition-colors {selectedObj.glow.enabled ? 'bg-pink-600' : 'bg-zinc-700'}"
+								onclick={() => store.setObjectGlow(selectedObj!.id, { enabled: !selectedObj!.glow.enabled })}
+							>
+								<div class="h-3 w-3 rounded-full bg-white transition-transform
+									{selectedObj.glow.enabled ? 'translate-x-[14px]' : 'translate-x-0.5'}"></div>
+							</button>
+						</div>
+						{#if selectedObj.glow.enabled}
+							<Slider label="Blur" value={selectedObj.glow.blur} min={1} max={60} step={1} unit="px"
+								onchange={(v) => store.setObjectGlow(selectedObj!.id, { blur: v })} />
+							<ColorPicker label="Glow Color" value={selectedObj.glow.color.startsWith('rgba') ? '#ffffff' : selectedObj.glow.color}
+								onchange={(v) => store.setObjectGlow(selectedObj!.id, { color: v })} />
+						{/if}
+					</div>
+
+					<!-- Swap Screenshot -->
+					{#if store.sceneObjects.length > 1 && selectedObj.screenshotUrl}
+						<div class="space-y-1">
+							<span class="text-[10px] font-medium text-zinc-500">Swap Screenshot</span>
+							<div class="flex flex-wrap gap-1">
+								{#each store.sceneObjects.filter(o => o.id !== selectedObj!.id) as otherObj}
+									{@const otherDevice = deviceRegistry.getDevice(otherObj.deviceId)}
+									<button
+										class="rounded-md bg-zinc-800 px-2 py-1 text-[9px] text-zinc-500 hover:bg-zinc-700 hover:text-zinc-300"
+										onclick={() => {
+											const myUrl = selectedObj!.screenshotUrl;
+											const myFile = selectedObj!.screenshotFile;
+											store.updateObject(selectedObj!.id, { screenshotUrl: otherObj.screenshotUrl, screenshotFile: otherObj.screenshotFile });
+											store.updateObject(otherObj.id, { screenshotUrl: myUrl, screenshotFile: myFile });
+										}}
+									>↔ {otherDevice?.name ?? 'Device'}</button>
+								{/each}
+							</div>
+						</div>
+					{/if}
+				</div>
+			{/if}
 		{/if}
 
 		<!-- ═══ APP STORE ══════════════════════════════════ -->

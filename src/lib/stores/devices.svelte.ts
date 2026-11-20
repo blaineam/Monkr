@@ -428,6 +428,10 @@ class DeviceRegistry {
 		return this.devices.find((d) => d.id === id);
 	}
 
+	supportsBodyDepth(device: DeviceMeta): boolean {
+		return device.category === 'phone' && /^iphone-\d/.test(device.id);
+	}
+
 	getDeviceColor(deviceId: string, colorId: string) {
 		const device = this.getDevice(deviceId);
 		if (!device) return undefined;
