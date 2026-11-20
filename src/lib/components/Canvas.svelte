@@ -359,6 +359,7 @@
 							colorSlug={color?.slug ?? device.colors[0]?.slug ?? ''}
 							transform={{ shadow: obj.shadow, tiltX: obj.tiltX, tiltY: obj.tiltY, zoom: 1 }}
 							frameStyle={obj.frameStyle}
+							bodyDepth={obj.bodyDepth}
 							borderRadius={obj.borderRadius}
 							glow={obj.glow}
 						/>

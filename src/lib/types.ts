@@ -43,6 +43,8 @@ export interface BackgroundConfig {
 export interface ShadowConfig {
 	enabled: boolean;
 	color: string;
+	/** Override the color's embedded alpha (0–1). */
+	opacity?: number;
 	blur: number;
 	spread: number;
 	offsetX: number;
@@ -166,6 +168,8 @@ export interface SceneObject {
 	tiltY: number;
 	shadow: ShadowConfig;
 	frameStyle: FrameStyle;
+	/** iPhone body thickness in frame pixels. */
+	bodyDepth?: number;
 	/** Border radius in pixels for no-frame mode */
 	borderRadius: number;
 	/** Edge glow effect */
