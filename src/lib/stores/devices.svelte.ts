@@ -429,7 +429,7 @@ class DeviceRegistry {
 	}
 
 	supportsBodyDepth(device: DeviceMeta): boolean {
-		return device.category === 'phone' && /^iphone-\d/.test(device.id);
+		return device.category === 'phone' && /^iphone-(\d|duo-)/.test(device.id);
 	}
 
 	getDeviceColor(deviceId: string, colorId: string) {

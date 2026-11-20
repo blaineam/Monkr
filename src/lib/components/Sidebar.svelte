@@ -593,7 +593,7 @@
 						<TiltPad tiltX={selectedObj.tiltX} tiltY={selectedObj.tiltY}
 							onchange={(tx, ty) => store.updateObject(selectedObj!.id, { tiltX: tx, tiltY: ty })} />
 						{#if selectedDevice && selectedObj.frameStyle === 'default' && deviceRegistry.supportsBodyDepth(selectedDevice)}
-							<Slider label="Body Depth" value={selectedObj.bodyDepth ?? 0} min={0} max={40} step={1} unit="px"
+							<Slider label="Body Depth" value={selectedObj.bodyDepth ?? 0} min={0} max={60} step={1} unit="px"
 								onchange={(v) => store.updateObject(selectedObj!.id, { bodyDepth: v })} />
 						{/if}
 					</div>
